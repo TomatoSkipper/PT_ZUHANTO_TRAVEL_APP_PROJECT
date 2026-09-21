@@ -3125,7 +3125,7 @@ private fun ContactDetails(modifier: Modifier = Modifier, accent: Color, cyan: C
         Text(stringResource(R.string.contact_desc), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
         Spacer(modifier = Modifier.height(20.dp))
         FooterLine(Icons.Default.Place, stringResource(R.string.head_office), stringResource(R.string.head_office_location), cyan)
-        FooterLine(Icons.Default.Phone, stringResource(R.string.phone_transalate), "+62 812 333 951–165", cyan)
+        FooterLine(Icons.Default.Phone, stringResource(R.string.phone_transalate), "+62 813 3315 225", cyan)
         FooterLine(Icons.Default.Email, stringResource(R.string.email_transalate), "info@ztiindo.id", cyan)
         FooterLine(Icons.Default.Language, stringResource(R.string.website_transalate), "www.ztiindo.id", cyan)
     }

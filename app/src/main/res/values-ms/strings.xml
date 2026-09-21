@@ -60,7 +60,7 @@
     <string name="invalid_email">Alamat e-mel tidak sah</string>
     <string name="error_invalid_phone">Sila masukkan nombor telefon yang sah (8-15 digit).</string>
     <string name="strategic_partnership">Kerjasama Strategik Kami</string>
-    <string name="strategic_partnership_description">Kami sedang memperluaskan rangkaian rakan kongsi pelancongan kami untuk membawakan anda pengalaman terbaik di seluruh kepulauan.</string>
+    <string name="strategic_partnership_description">Kami bekerjasama dengan penyedia perkhidmatan hospitaliti dan pelancongan terkemuka bagi memastikan setiap perjalanan bersama PT ZUHANTO TRAVEL INDONESIA menawarkan kualiti, keselesaan, dan nilai yang tiada tandingannya.</string>
     <string name="varna_culture_hotel">Varna Culture Hotel Surabaya</string>
     <string name="welcome_user">Selamat Datang, %1$s!</string>
     <string name="affordable_price">pada Harga Berpatutan</string>
@@ -69,7 +69,7 @@
     <string name="our_private_services">Perkhidmatan Peribadi Kami</string>
     <string name="private_services_desc">Setiap pakej PT ZUHANTO TRAVEL INDONESIA direka untuk meneroka destinasi ikonik dengan konsep perjalanan peribadi, selesa dan berpatutan.</string>
     <string name="bromo_tour">Lawatan Peribadi Bromo</string>
-    <string name="bromo_tour_desc">Atur cara tersuai untuk menyaksikan matahari terbit di Gunung Bromo dengan keselesaan jip peribadi.</string>
+    <string name="bromo_tour_desc">Atur cara tersuai untuk menyaksikan matahari terbit di Gunung Bromo dengan keselesaan jeep peribadi.</string>
     <string name="pricing_transparency">Harga Kompetitif &amp; Ketelusan</string>
     <string name="pricing_transparency_desc">Nilai terbaik dengan sama sekali tiada yuran tersembunyi.</string>
     <string name="customer_support_24_7">Sokongan Pelanggan 24/7</string>
@@ -88,7 +88,7 @@
     <string name="why_zti_chooses_partners">Mengapa ZTI Memilih Rakan Strategik</string>
 
     <string name="mount_bromo">Gunung Bromo</string>
-    <string name="mount_bromo_desc">Saksikan matahari terbit yang ajaib di Gunung Bromo dengan perkhidmatan jip peribadi.</string>
+    <string name="mount_bromo_desc">Saksikan matahari terbit yang ajaib di Gunung Bromo dengan perkhidmatan jeep peribadi.</string>
     <string name="borobudur_temple">Tokong Borobudur</string>
     <string name="borobudur_temple_desc">Terokai tokong Buddha terbesar di dunia dan kemegahan senibina nya.</string>
     <string name="ijen_crater">Kawah Ijen</string>
@@ -179,12 +179,12 @@
     <string name="dream_journey">Impian Anda</string>
     <string name="contact_desc">Hubungi PT ZUHANTO TRAVEL INDONESIA untuk merancang perjalanan peribadi anda ke Indonesia.</string>
     <string name="head_office">Head Office</string>
-    <string name="head_office_location">Surabaya, Jawa Timur, Indonesia</string>
+    <string name="head_office_location">High Point Service Apartment Siwalankerto Timur 161–165 Surabaya, Indonesia</string>
     <string name="website_transalate">Laman Web</string>
     <string name="social_media">Media Sosial</string>
     <string name="pt_zuhanto_desc">Rakan perjalanan yang dipercayai untuk pengalaman perjalanan di Indonesia yang tulen dan penuh kenangan.</string>
     <string name="contact_us_transalate">HUBUNGI KAMI</string>
-    <string name="place">Surabaya, Jawa Barat</string>
+    <string name="place">High Point Service Apartment Siwalankerto Timur 161–165 Surabaya, Indonesia</string>
     <string name="follow_us">IKUTI KAMI</string>
     <string name="phone_transalate">Telefon</string>
     <string name="email_transalate">Emel</string>

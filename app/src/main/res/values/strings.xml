@@ -60,7 +60,7 @@
     <string name="invalid_email">Invalid email address</string>
     <string name="error_invalid_phone">Enter a valid phone number (8-15 digits).</string>
     <string name="strategic_partnership">Our Strategic Partnership</string>
-    <string name="strategic_partnership_description">We are currently expanding our network of travel partners to bring you the best experiences across the archipelago.</string>
+    <string name="strategic_partnership_description">We collaborate with leading hospitality and tourism providers to ensure every journey with PT ZUHANTO TRAVEL INDONESIA delivers unmatched quality, comfort, and value.</string>
     <string name="varna_culture_hotel">Varna Culture Hotel Surabaya</string>
     <string name="welcome_user">Welcome, %1$s!</string>
     <string name="affordable_price">at Affordable Price</string>
@@ -177,14 +177,14 @@
     <string name="dream_journey">Dream Journey</string>
     <string name="contact_desc">Contact PT ZUHANTO TRAVEL INDONESIA to design your private trip to Indonesia.</string>
     <string name="head_office">Head Office</string>
-    <string name="head_office_location">Surabaya, East Java, Indonesia</string>
+    <string name="head_office_location">High Point Service Apartment Siwalankerto Timur 161–165 Surabaya, Indonesia</string>
     <string name="phone_transalate">Phone</string>
     <string name="email_transalate">Email</string>
     <string name="website_transalate">Website</string>
     <string name="social_media">Social Media</string>
     <string name="pt_zuhanto_desc">A trusted travel partner for authentic and memorable Indonesian journeys.</string>
     <string name="contact_us_transalate">CONTACT US</string>
-    <string name="place">Surabaya, East Java</string>
+    <string name="place">High Point Service Apartment Siwalankerto Timur 161–165 Surabaya, Indonesia</string>
     <string name="follow_us">FOLLOW US</string>
     <string name="my_bookings">My Bookings</string>
     <string name="available_vouchers">Available Vouchers</string>
