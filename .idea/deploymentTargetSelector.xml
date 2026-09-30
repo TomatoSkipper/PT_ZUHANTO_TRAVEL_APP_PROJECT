@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-09-21T00:18:39.485396400Z">
+        <DropdownSelection timestamp="2026-09-25T06:48:21.628279400Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\harit\.android\avd\Pixel_8_Pro.avd" />
+              <DeviceId pluginId="Wireless" identifier="serviceName=adb-31188523-u9YM5N" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,10 +15,10 @@
       </SelectionState>
       <SelectionState runConfigName="androidTest">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-09-21T00:18:39.485396400Z">
+        <DropdownSelection timestamp="2026-09-28T09:21:20.573708800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\harit\.android\avd\Pixel_8_Pro.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=31188523" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -37,7 +37,7 @@
       </SelectionState>
       <SelectionState runConfigName="main">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-09-21T01:56:49.272546800Z">
+        <DropdownSelection timestamp="2026-09-28T01:25:59.995368700Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=10AC860U8R000E4" />

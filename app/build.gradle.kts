@@ -72,12 +72,28 @@ dependencies {
     implementation(libs.compose.icons.fontawesome)
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("io.coil-kt:coil-gif:2.6.0")
+    implementation("com.google.mlkit:translate:17.0.3")
 
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation("com.google.firebase:firebase-database")
 
-    //Startup Animation
-    implementation("com.airbnb.android:lottie-compose:6.4.0")
+    // Google Sign In & Credentials
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    //Fetch data from website to Update
+    implementation("org.jsoup:jsoup:1.17.2")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Retrofit for networking
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+// ViewModel for Jetpack Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
 }
