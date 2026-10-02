@@ -3,9 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// IMPORTANT: Google AI Studio API keys MUST start with "AIzaSy..."
-const GEMINI_API_KEY = 'AQ.Ab8RN6JP-1vPqLi4w-sMk9SpGdbYCmqb88eOuA0X8XWiLi9u0Q';
-
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 const app = express();
