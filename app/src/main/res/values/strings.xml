@@ -671,7 +671,7 @@
     <string name="ai_intro_subtext">today? Ask me for the best places to visit, stay, or eat!</string>
     <string name="ai_intro2">Hello! I am your AI Travel Assistant. Ask me for recommendations on places to visit, stay, or eat for any trip destination!</string>
     <string name="ai_error">We are having trouble connecting right now. Please check your internet connection and try again.</string>
-    <string name="custom_trip">CUSTOM TRIP PACKAGE</string>
+    <string name="custom_trip">CUSTOM PACKAGE</string>
     <string name="phone_verified">Phone Verified</string>
     <string name="phone_unverified">Phone Unverified (Verified on booking)</string>
     <string name="user_problem_reports">User Problem Reports</string>

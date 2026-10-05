@@ -676,7 +676,7 @@
     <string name="ai_intro_subtext">hari ini? Tanya saya tentang tempat-tempat terbaik untuk dikunjungi, menginap, atau menjamu selera!</string>
     <string name="ai_intro2">Hai! Saya Pembantu Perjalanan AI anda. Mintalah cadangan daripada saya mengenai tempat untuk dikunjungi, tempat penginapan, atau tempat makan bagi sebarang destinasi perjalanan!</string>
     <string name="ai_error">Kami menghadapi masalah untuk membuat sambungan pada masa ini. Sila semak sambungan internet anda dan cuba lagi.</string>
-    <string name="custom_trip">PAKEJ PERJALANAN TERSUAI</string>
+    <string name="custom_trip">PAKEJ TERSUAI</string>
     <string name="phone_verified">Nombor Telefon Disahkan</string>
     <string name="phone_unverified">Nombor Telefon Belum Disahkan (Disahkan semasa tempahan)</string>
     <string name="user_problem_reports">Laporan Masalah Pengguna</string>
