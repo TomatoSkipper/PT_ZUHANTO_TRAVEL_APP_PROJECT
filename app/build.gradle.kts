@@ -67,6 +67,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.6")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.6")
     implementation(libs.androidx.appcompat)
     implementation(libs.jbcrypt)
     implementation(libs.compose.icons.fontawesome)
