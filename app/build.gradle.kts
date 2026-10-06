@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.example.appproject"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.appproject"
@@ -98,4 +98,7 @@ dependencies {
 
 // ViewModel for Jetpack Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+
+    // Payment Gateway
+    implementation("com.stripe:stripe-android:20.53.0")
 }
