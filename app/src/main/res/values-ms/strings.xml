@@ -21,7 +21,7 @@
     <string name="error_account_banned">Akaun anda telah disekat, sila hubungi khidmat pelanggan kami</string>
     <string name="no_account">Belum mempunyai akaun? </string>
     <string name="sign_up">Daftar</string>
-    <string name="contact_us">Berbual dengan\nPT ZTI</string>
+    <string name="contact_us">Hubungi Kami</string>
     <string name="about_company">Mengenai PT Zuhanto Travel Indonesia</string>
     <string name="company_slogan">Mencipta Pengembaraan Indonesia yang Tidak Dilupakan Sejak 2015</string>
     <string name="company_description_short">Kami berdedikasi untuk menyediakan pengalaman perjalanan premium yang tulen merentasi destinasi paling menakjubkan di Indonesia.</string>
@@ -367,7 +367,7 @@
     <string name="unban_confirmation_msg">Nyahsekat %1$s? Mereka akan dapat log masuk semula.</string>
     <string name="delete_confirmation_msg">Padam akaun %1$s? Tindakan ini tidak boleh dibatalkan.</string>
     <string name="delete_booking_title">Padam Tempahan</string>
-    <string name="delete_booking_confirmation_msg">Adakah anda pasti mahu memadamkan tempahan #%1$s untuk %2$s (%3$s)? Tindakan ini tidak boleh dibatalkan.</string>
+    <string name="delete_booking_confirmation_msg">Adakah anda pasti mahu memadamkan tempahan ini? Tindakan ini tidak boleh dibatalkan.</string>
     <string name="booking_deleted_success">Tempahan #%1$s berjaya dipadamkan.</string>
     <string name="booking_id_format">ID Tempahan: #%1$s</string>
     <string name="price_paid_format">Harga Dibayar: %1$s</string>
@@ -758,4 +758,5 @@
     <string name="ready_for_your_next_trip">Bersedia untuk perjalanan anda yang seterusnya</string>
     <string name="explore_indonesia_in_style">Jelajah Indonesia dengan bergaya</string>
     <string name="promo_package">PAKEJ PROMO</string>
+    <string name="no_voucher_used">Tiada Baucar Digunakan</string>
 </resources>
