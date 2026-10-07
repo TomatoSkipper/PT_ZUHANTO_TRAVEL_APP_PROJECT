@@ -79,7 +79,6 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import coil.compose.AsyncImage
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import com.example.appproject.data.model.CountryCodeOption
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.data.model.User
@@ -353,7 +352,8 @@ fun LoginScreen(
                 val isAdmin = tokenResult?.claims?.get("admin") == true
 
                 val targetUsername = if (isAdmin) {
-                    ADMIN_USERNAME
+                    // Set a default username for admin users
+                    "Admin"
                 } else {
                     val currentUser = firebaseRepo.getUser(userPhone)
                     if (currentUser == null) {
