@@ -870,14 +870,14 @@ fun RegisterScreen(
     fun saveNewUserAndFinish(fullPhone: String, username: String, isVerified: Boolean) {
         scope.launch {
             try {
-                val finalUsername = username.ifBlank { email.trim().substringBefore("@").ifBlank { fullPhone } }
-                if (firebaseRepo.isUsernameRegistered(finalUsername)) {
+                val currentUserUid = auth.currentUser?.uid ?: ""
+                if (firebaseRepo.isPhoneRegistered(fullPhone, currentUserUid)) {
                     isloading = false
-                    errorMessage = "This username is already taken"
+                    errorMessage = "This phone number is already registered to another account"
                     return@launch
                 }
 
-                val currentUserUid = auth.currentUser?.uid ?: ""
+                val finalUsername = username.ifBlank { email.trim().substringBefore("@").ifBlank { fullPhone } }
                 val newUser = User(
                     uid = currentUserUid,
                     username = finalUsername,
@@ -948,6 +948,13 @@ fun RegisterScreen(
 
         scope.launch {
             try {
+                val currentUserUid = auth.currentUser?.uid ?: ""
+                if (firebaseRepo.isPhoneRegistered(fullPhone, currentUserUid)) {
+                    isloading = false
+                    errorMessage = "This phone number is already registered to another account"
+                    return@launch
+                }
+
                 if (activity == null) {
                     isloading = false
                     errorMessage = "Activity Reference Error"

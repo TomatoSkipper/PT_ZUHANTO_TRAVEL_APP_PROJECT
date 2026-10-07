@@ -105,13 +105,20 @@ class FirebaseRepository {
         }
     }
 
-    suspend fun isUsernameRegistered(username: String): Boolean {
-        val cleanUsername = username.trim()
-        if (cleanUsername.isBlank()) return false
+    suspend fun isPhoneRegistered(phone: String, excludeUid: String = ""): Boolean {
+        val cleanPhone = phone.trim()
+        if (cleanPhone.isBlank()) return false
         return try {
-            val docs = usersCollection?.whereEqualTo("username", cleanUsername)?.get()?.await()
-            val lowerDocs = usersCollection?.whereEqualTo("username", cleanUsername.lowercase(Locale.ROOT))?.get()?.await()
-            (docs?.isEmpty == false) || (lowerDocs?.isEmpty == false)
+            val docs = usersCollection?.whereEqualTo("phone", cleanPhone)?.get()?.await()
+            if (docs != null && !docs.isEmpty) {
+                if (excludeUid.isBlank()) return true
+                docs.documents.any { doc ->
+                    val user = doc.toObject(User::class.java)
+                    user != null && user.uid != excludeUid
+                }
+            } else {
+                false
+            }
         } catch (e: Exception) {
             false
         }

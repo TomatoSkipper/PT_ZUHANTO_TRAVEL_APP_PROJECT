@@ -69,7 +69,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.ui.theme.AppTheme

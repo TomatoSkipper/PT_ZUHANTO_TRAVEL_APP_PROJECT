@@ -96,7 +96,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import kotlinx.coroutines.tasks.await
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.example.appproject.data.repository.FirebaseRepository
@@ -745,11 +744,16 @@ fun AppNavigationDrawer() {
                         LoginScreen(
                             firebaseRepo = firebaseRepo,
                             onLoginSuccess = { user ->
-                                loggedInUser = user
-                                val destination =
-                                    if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                navController.navigate(destination) {
-                                    popUpTo("home") { inclusive = true }
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(false)?.await()
+                                    val isAdmin = tokenResult?.claims?.get("admin") == true
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
                                 }
                             },
                             onSignUpClick = {
@@ -792,11 +796,16 @@ fun AppNavigationDrawer() {
                             LoginScreen(
                                 firebaseRepo = firebaseRepo,
                                 onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
+                                    scope.launch {
+                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
+                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        isAdminLoggedIn = isAdmin
+                                        loggedInUser = user
+                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                        navController.navigate(destination) {
+                                            popUpTo("home") { inclusive = true }
+                                        }
                                     }
                                 },
                                 onSignUpClick = { navController.navigate("register") }
@@ -810,11 +819,16 @@ fun AppNavigationDrawer() {
                             LoginScreen(
                                 firebaseRepo = firebaseRepo,
                                 onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
+                                    scope.launch {
+                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
+                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        isAdminLoggedIn = isAdmin
+                                        loggedInUser = user
+                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                        navController.navigate(destination) {
+                                            popUpTo("home") { inclusive = true }
+                                        }
                                     }
                                 },
                                 onSignUpClick = { navController.navigate("register") }
@@ -828,11 +842,16 @@ fun AppNavigationDrawer() {
                             LoginScreen(
                                 firebaseRepo = firebaseRepo,
                                 onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
+                                    scope.launch {
+                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
+                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        isAdminLoggedIn = isAdmin
+                                        loggedInUser = user
+                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                        navController.navigate(destination) {
+                                            popUpTo("home") { inclusive = true }
+                                        }
                                     }
                                 },
                                 onSignUpClick = { navController.navigate("register") }
@@ -895,11 +914,16 @@ fun AppNavigationDrawer() {
                             LoginScreen(
                                 firebaseRepo = firebaseRepo,
                                 onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
+                                    scope.launch {
+                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
+                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        isAdminLoggedIn = isAdmin
+                                        loggedInUser = user
+                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                        navController.navigate(destination) {
+                                            popUpTo("home") { inclusive = true }
+                                        }
                                     }
                                 },
                                 onSignUpClick = {
@@ -980,7 +1004,7 @@ fun AppNavigationDrawer() {
                     }
                     composable("profile/{username}") { backStackEntry ->
                         val usernameArg = backStackEntry.arguments?.getString("username") ?: ""
-                        if (usernameArg.equals(ADMIN_USERNAME, ignoreCase = true)) {
+                        if (isAdminLoggedIn) {
                             LaunchedEffect(Unit) {
                                 navController.navigate("admin") {
                                     popUpTo("admin") { inclusive = true }
@@ -1019,10 +1043,16 @@ fun AppNavigationDrawer() {
                         RegisterScreen(
                             firebaseRepo = firebaseRepo,
                             onRegisterSuccess = { newUsername ->
-                                loggedInUser = newUsername
-                                val destination = if (newUsername == ADMIN_USERNAME) "admin" else "dashboard/$newUsername"
-                                navController.navigate(destination) {
-                                    popUpTo("home") { inclusive = true }
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(false)?.await()
+                                    val isAdmin = tokenResult?.claims?.get("admin") == true
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = newUsername
+                                    val destination = if (isAdmin) "admin" else "dashboard/$newUsername"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
                                 }
                             },
                             onBackToLogin = {

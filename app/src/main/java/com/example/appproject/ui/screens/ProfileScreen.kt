@@ -239,12 +239,18 @@ fun ProfileScreen(
                                         try {
                                             user?.let {
                                                 val newUsername = editableUsername.trim()
-                                                val isPhoneChanged = it.phone != phone.trim()
+                                                val newPhone = phone.trim()
+                                                val isPhoneChanged = it.phone != newPhone
+
+                                                if (isPhoneChanged && firebaseRepo.isPhoneRegistered(newPhone, it.uid)) {
+                                                    errorMessage = "This phone number is already registered to another account"
+                                                    return@launch
+                                                }
 
                                                 val updatedUser = it.copy(
                                                     username = newUsername,
                                                     email = email.trim(),
-                                                    phone = phone.trim(),
+                                                    phone = newPhone,
                                                     isPhoneVerified = if (isPhoneChanged) false else it.isPhoneVerified
                                                 )
                                                 firebaseRepo.saveUser(updatedUser)

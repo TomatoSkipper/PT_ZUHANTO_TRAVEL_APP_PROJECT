@@ -89,7 +89,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import com.example.appproject.data.model.LanguageManager
 import com.example.appproject.data.model.LanguageOption
 import com.example.appproject.data.model.ProblemReport

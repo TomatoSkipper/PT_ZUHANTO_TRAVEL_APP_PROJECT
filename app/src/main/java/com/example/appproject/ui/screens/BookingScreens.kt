@@ -94,7 +94,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.data.model.VoucherStatus
