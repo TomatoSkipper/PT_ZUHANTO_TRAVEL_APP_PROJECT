@@ -160,7 +160,7 @@ fun PaymentScreen(
     val invalidVoucherMsg = stringResource(R.string.invalid_voucher)
 
     val publishableKey = "pk_test_51UNOmW984JcO38MUl2fQbGvBbgnCyLVaPdPhwlUTMSR1dXkjrZzV8Gl5VV96wZKTtv2UUaVOqFcy48zCvgpr3FpH00mrOstu0x"
-    val secretKey = "YOUR_STRIPE_SECRET_KEY"
+    val secretKey = ""
 
     // Stripe PaymentSheet integration
     val paymentSheet = rememberPaymentSheet { result ->
