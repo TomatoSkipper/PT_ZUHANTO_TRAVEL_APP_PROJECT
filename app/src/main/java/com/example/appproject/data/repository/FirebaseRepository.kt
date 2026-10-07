@@ -41,7 +41,8 @@ class FirebaseRepository {
 
     suspend fun saveUser(user: User) {
         try {
-            val docId = user.username.ifBlank { user.email.ifBlank { user.phone } }.normalizedUsername()
+            val uid = user.uid.ifBlank { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+            val docId = if (uid.isNotBlank()) uid else user.username.normalizedUsername()
             if (docId.isNotBlank()) {
                 usersCollection?.document(docId)?.set(user)?.await()
             }
@@ -55,11 +56,22 @@ class FirebaseRepository {
         val cleanQuery = query.trim()
         val normalized = cleanQuery.lowercase(Locale.ROOT)
         return try {
-            // 1. Direct document lookup by normalized username
-            val snapshot = usersCollection?.document(normalized)?.get()?.await()
+            // 1. Direct document lookup by query (UID or normalized username)
+            val snapshot = usersCollection?.document(cleanQuery)?.get()?.await()
             var user = snapshot?.toObject(User::class.java)
 
-            // 2. Query by email
+            if (user == null && cleanQuery != normalized) {
+                val normSnapshot = usersCollection?.document(normalized)?.get()?.await()
+                user = normSnapshot?.toObject(User::class.java)
+            }
+
+            // 2. Query by uid field
+            if (user == null) {
+                val uidDocs = usersCollection?.whereEqualTo("uid", cleanQuery)?.get()?.await()
+                user = uidDocs?.documents?.firstOrNull()?.toObject(User::class.java)
+            }
+
+            // 3. Query by email
             if (user == null && cleanQuery.contains("@")) {
                 val emailDocs = usersCollection?.whereEqualTo("email", cleanQuery)?.get()?.await()
                 user = emailDocs?.documents?.firstOrNull()?.toObject(User::class.java)
@@ -69,7 +81,7 @@ class FirebaseRepository {
                 }
             }
 
-            // 3. Query by phone
+            // 4. Query by phone
             if (user == null) {
                 val phoneDocs = usersCollection?.whereEqualTo("phone", cleanQuery)?.get()?.await()
                 user = phoneDocs?.documents?.firstOrNull()?.toObject(User::class.java)
@@ -85,10 +97,14 @@ class FirebaseRepository {
                 }
             }
 
-            // 4. Query by username property
+            // 5. Query by username property
             if (user == null) {
                 val usernameDocs = usersCollection?.whereEqualTo("username", normalized)?.get()?.await()
                 user = usernameDocs?.documents?.firstOrNull()?.toObject(User::class.java)
+                if (user == null) {
+                    val exactUsernameDocs = usersCollection?.whereEqualTo("username", cleanQuery)?.get()?.await()
+                    user = exactUsernameDocs?.documents?.firstOrNull()?.toObject(User::class.java)
+                }
             }
 
             user
@@ -110,9 +126,23 @@ class FirebaseRepository {
         return getUser(cleanPhone) != null
     }
 
+    suspend fun isUsernameRegistered(username: String): Boolean {
+        val cleanUsername = username.trim()
+        if (cleanUsername.isBlank()) return false
+        return try {
+            val docs = usersCollection?.whereEqualTo("username", cleanUsername)?.get()?.await()
+            val lowerDocs = usersCollection?.whereEqualTo("username", cleanUsername.lowercase(Locale.ROOT))?.get()?.await()
+            (docs?.isEmpty == false) || (lowerDocs?.isEmpty == false)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun saveBooking(booking: Booking) {
         try {
-            bookingsCollection?.document(booking.bookingId)?.set(booking)?.await()
+            val uid = booking.customerUid.ifBlank { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+            val finalBooking = if (uid.isNotBlank() && booking.customerUid.isBlank()) booking.copy(customerUid = uid) else booking
+            bookingsCollection?.document(finalBooking.bookingId)?.set(finalBooking)?.await()
         } catch (e: Exception) {
             Log.e(TAG, "Error saving booking: ${e.message}")
         }
@@ -135,12 +165,22 @@ class FirebaseRepository {
 
     suspend fun getBookingsForUser(username: String): List<Booking> {
         return try {
-            bookingsCollection
-                ?.whereEqualTo("customerUsername", username)
-                ?.orderBy("bookingDate")
-                ?.get()
-                ?.await()
-                ?.toObjects(Booking::class.java) ?: emptyList()
+            val user = getUser(username)
+            val uid = user?.uid ?: ""
+            val bookings = mutableListOf<Booking>()
+            if (uid.isNotBlank()) {
+                val uidDocs = bookingsCollection?.whereEqualTo("customerUid", uid)?.get()?.await()?.toObjects(Booking::class.java)
+                if (uidDocs != null) bookings.addAll(uidDocs)
+            }
+            val usernameDocs = bookingsCollection?.whereEqualTo("customerUsername", username)?.get()?.await()?.toObjects(Booking::class.java)
+            if (usernameDocs != null) {
+                for (b in usernameDocs) {
+                    if (bookings.none { it.bookingId == b.bookingId }) {
+                        bookings.add(b)
+                    }
+                }
+            }
+            bookings.sortedBy { it.bookingDate }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting bookings for user: ${e.message}")
             emptyList()

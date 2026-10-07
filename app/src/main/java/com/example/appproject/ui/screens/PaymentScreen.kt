@@ -187,9 +187,10 @@ fun PaymentScreen(
             }
             is PaymentSheetResult.Failed -> {
                 isProcessingPayment = false
+                Log.e("PaymentScreen", "Payment failed: ${result.error.localizedMessage}", result.error)
                 Toast.makeText(
                     context,
-                    "$paymentFailedMsg: ${result.error.localizedMessage}",
+                    "$paymentFailedMsg. Please try again.",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -457,14 +458,15 @@ fun PaymentScreen(
                                     )
                                     Toast.makeText(
                                         context,
-                                        "Error: ${e.localizedMessage}",
+                                        "An error occurred while launching payment. Please try again.",
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
                             } else {
+                                Log.e("PaymentScreen", "Stripe Error: ${errorMsg ?: "Failed to generate client secret"}")
                                 Toast.makeText(
                                     context,
-                                    "Stripe Error: ${errorMsg ?: "Failed to generate client secret"}",
+                                    "Failed to initialize payment. Please try again later.",
                                     Toast.LENGTH_LONG
                                 ).show()
                             }

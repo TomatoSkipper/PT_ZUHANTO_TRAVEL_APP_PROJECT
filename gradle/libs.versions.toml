@@ -19,7 +19,6 @@ composeIcons = "1.7.6"
 navigationCompose = "2.8.5"
 room = "2.6.1"
 ksp = "2.1.0-1.0.29"
-jbcrypt = "0.4"
 firebase-bom = "33.7.0"
 google-services = "4.5.0"
 
@@ -49,7 +48,6 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-jbcrypt = { group = "org.mindrot", name = "jbcrypt", version.ref = "jbcrypt" }
 compose-icons-fontawesome = { group = "br.com.devsrsouza.compose.icons.android", name = "font-awesome", version = "1.0.0" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }

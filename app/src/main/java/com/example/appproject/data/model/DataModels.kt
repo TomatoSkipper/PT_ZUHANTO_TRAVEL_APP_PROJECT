@@ -164,6 +164,7 @@ fun isValidPhone(phone: String): Boolean {
 @Entity(tableName = "bookings")
 data class Booking(
     @PrimaryKey val bookingId: String = "",
+    val customerUid: String = "",
     val customerUsername: String = "",
     val customerName: String = "",
     val customerPhone: String = "",
