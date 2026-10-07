@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.example.appproject"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.appproject"
@@ -67,6 +67,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.6")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.6")
     implementation(libs.androidx.appcompat)
     implementation(libs.jbcrypt)
     implementation(libs.compose.icons.fontawesome)
@@ -96,4 +98,7 @@ dependencies {
 
 // ViewModel for Jetpack Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+
+    // Payment Gateway
+    implementation("com.stripe:stripe-android:20.53.0")
 }
