@@ -214,6 +214,7 @@ val defaultCountryCodes = listOf(
 
 data class ProblemReport(
     val reportId: String = "",
+    val userUid: String = "",
     val username: String = "",
     val userEmail: String = "",
     val title: String = "",

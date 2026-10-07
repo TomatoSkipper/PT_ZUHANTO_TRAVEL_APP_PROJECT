@@ -150,40 +150,31 @@ fun AppNavigationDrawer() {
     var showSplash by remember { mutableStateOf(true) }
 
     var loggedInUser by rememberSaveable { mutableStateOf<String?>(null) }
-    val isAdminLoggedIn = loggedInUser == ADMIN_USERNAME
+    var isAdminLoggedIn by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        val savedUsername = sessionPreferences.getString("signed_in_username", null)
-        if (savedUsername != null) {
-            val firebaseUser = FirebaseAuth.getInstance().currentUser
-            if (firebaseUser == null) {
-                sessionPreferences.edit().remove("signed_in_username").apply()
-                return@LaunchedEffect
-            }
+        val firebaseUser = FirebaseAuth.getInstance().currentUser
+        if (firebaseUser != null) {
+            val uid = firebaseUser.uid
+            try {
+                val tokenResult = firebaseUser.getIdToken(false).await()
+                val isAdmin = tokenResult?.claims?.get("admin") as? Boolean == true
+                isAdminLoggedIn = isAdmin
 
-            val restoredUsername = if (savedUsername == ADMIN_USERNAME) {
-                try {
-                    val tokenResult = firebaseUser.getIdToken(false).await()
-                    val isAdmin = tokenResult?.claims?.get("admin") as? Boolean == true
-                    if (isAdmin) ADMIN_USERNAME else null
-                } catch (_: Exception) {
-                    null
+                val user = firebaseRepo.getUser(uid)
+                if (user != null && !user.isBanned) {
+                    loggedInUser = uid
+                } else if (isAdmin) {
+                    loggedInUser = uid
+                } else {
+                    FirebaseAuth.getInstance().signOut()
+                    loggedInUser = null
+                    isAdminLoggedIn = false
                 }
-            } else {
-                try {
-                    firebaseRepo.getUser(savedUsername)
-                        ?.takeUnless { it.isBanned }
-                        ?.username
-                } catch (_: Exception) {
-                    null
-                }
-            }
-
-            if (restoredUsername != null) {
-                loggedInUser = restoredUsername
-            } else {
-                sessionPreferences.edit().remove("signed_in_username").apply()
+            } catch (_: Exception) {
                 FirebaseAuth.getInstance().signOut()
+                loggedInUser = null
+                isAdminLoggedIn = false
             }
         }
     }
@@ -201,13 +192,13 @@ fun AppNavigationDrawer() {
         }
     }
 
-    DisposableEffect(loggedInUser) {
+    DisposableEffect(loggedInUser, isAdminLoggedIn) {
         val user = loggedInUser
         if (user.isNullOrEmpty()) {
             return@DisposableEffect onDispose {}
         }
 
-        val listenerRegistration = if (user == ADMIN_USERNAME) {
+        val listenerRegistration = if (isAdminLoggedIn) {
             firebaseRepo.listenToAllBookings { bookingList ->
                 val prefs = context.getSharedPreferences("booking_notifications_prefs", Context.MODE_PRIVATE)
                 val isInitialized = prefs.getBoolean("admin_booking_notifications_initialized", false)
@@ -253,10 +244,10 @@ fun AppNavigationDrawer() {
     val activity = context as? AppCompatActivity
     val targetBookingId = activity?.intent?.getStringExtra("navigate_to_booking_id")
     val navigateToAdmin = activity?.intent?.getBooleanExtra("navigate_to_admin", false) ?: false
-    LaunchedEffect(targetBookingId, navigateToAdmin, loggedInUser, showSplash) {
+    LaunchedEffect(targetBookingId, navigateToAdmin, loggedInUser, isAdminLoggedIn, showSplash) {
         if (!showSplash && (!targetBookingId.isNullOrEmpty() || navigateToAdmin) && loggedInUser != null) {
             try {
-                if (loggedInUser == ADMIN_USERNAME || navigateToAdmin) {
+                if (isAdminLoggedIn || navigateToAdmin) {
                     navController.navigate("admin") {
                         launchSingleTop = true
                     }

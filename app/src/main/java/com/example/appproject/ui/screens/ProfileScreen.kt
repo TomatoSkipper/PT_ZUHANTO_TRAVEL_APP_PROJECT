@@ -238,9 +238,7 @@ fun ProfileScreen(
                                     scope.launch {
                                         try {
                                             user?.let {
-                                                val oldUsername = it.username
                                                 val newUsername = editableUsername.trim()
-                                                val isUsernameChanged = oldUsername != newUsername
                                                 val isPhoneChanged = it.phone != phone.trim()
 
                                                 val updatedUser = it.copy(
@@ -251,21 +249,9 @@ fun ProfileScreen(
                                                 )
                                                 firebaseRepo.saveUser(updatedUser)
 
-                                                if (isUsernameChanged) {
-                                                    firebaseRepo.db?.collection("users")?.document(oldUsername.lowercase())?.delete()?.await()
-                                                    val bookings = firebaseRepo.getBookingsForUser(oldUsername)
-                                                    for (booking in bookings) {
-                                                        val updatedBooking = booking.copy(customerUsername = newUsername, customerName = newUsername)
-                                                        firebaseRepo.updateBooking(updatedBooking)
-                                                    }
-                                                }
-
-                                                val preferences = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
-                                                preferences.edit().putString("signed_in_username", updatedUser.username).apply()
-
                                                 user = updatedUser
                                                 successMessage = context.getString(R.string.profile_updated)
-                                                onProfileUpdated(updatedUser.username)
+                                                onProfileUpdated(updatedUser.uid)
                                             }
                                         } catch (e: Exception) {
                                             errorMessage = e.message ?: context.getString(R.string.unable_update)

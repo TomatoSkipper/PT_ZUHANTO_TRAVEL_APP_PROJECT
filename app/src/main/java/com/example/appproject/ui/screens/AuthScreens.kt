@@ -870,18 +870,6 @@ fun RegisterScreen(
     fun saveNewUserAndFinish(fullPhone: String, username: String, isVerified: Boolean) {
         scope.launch {
             try {
-                if (firebaseRepo.isEmailRegistered(email.trim())) {
-                    isloading = false
-                    errorMessage = "This email is already registered to another account"
-                    return@launch
-                }
-
-                if (firebaseRepo.isPhoneRegistered(fullPhone)) {
-                    isloading = false
-                    errorMessage = "This phone number is already registered to another account"
-                    return@launch
-                }
-
                 val finalUsername = username.ifBlank { email.trim().substringBefore("@").ifBlank { fullPhone } }
                 if (firebaseRepo.isUsernameRegistered(finalUsername)) {
                     isloading = false
@@ -899,12 +887,6 @@ fun RegisterScreen(
                     name = username.ifBlank { finalUsername }
                 )
                 firebaseRepo.saveUser(newUser)
-
-                val preferences = context.getSharedPreferences(
-                    "user_session",
-                    Context.MODE_PRIVATE
-                )
-                preferences.edit().putString("signed_in_username", finalUsername).apply()
 
                 registeredUsername = finalUsername
                 isloading = false
@@ -966,20 +948,6 @@ fun RegisterScreen(
 
         scope.launch {
             try {
-                val emailTaken = firebaseRepo.isEmailRegistered(email.trim())
-                if (emailTaken) {
-                    isloading = false
-                    errorMessage = "This email is already registered to another account"
-                    return@launch
-                }
-
-                val phoneTaken = firebaseRepo.isPhoneRegistered(fullPhone)
-                if (phoneTaken) {
-                    isloading = false
-                    errorMessage = "This phone number is already registered to another account"
-                    return@launch
-                }
-
                 if (activity == null) {
                     isloading = false
                     errorMessage = "Activity Reference Error"

@@ -249,8 +249,8 @@ fun AdminUsersScreen(firebaseRepo: FirebaseRepository) {
                                     users = users.map { if (it.username == updatedUser.username) updatedUser else it }
                                 }
                                 "delete" -> {
-                                    firebaseRepo.deleteUser(user.username)
-                                    users = users.filterNot { it.username == user.username }
+                                    firebaseRepo.deleteUser(user.uid)
+                                    users = users.filterNot { it.uid == user.uid }
                                 }
                             }
                             userPendingAction = null

@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -123,8 +124,12 @@ fun SettingsScreen(
             ?: "Guest"
     }
 
-    val isGuest = currentUsername.equals("Guest", ignoreCase = true) || currentUsername.isBlank()
-    val isAdmin = !isGuest && (currentUsername == ADMIN_USERNAME || currentUsername.equals("Admin123", ignoreCase = true))
+    val currentUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+    val isGuest = currentUid.isBlank()
+    val isAdmin = remember {
+        // Admin status can be checked via auth token or fallback
+        false
+    }
 
     var selectedTabIndex by remember { mutableStateOf(0) }
 
@@ -193,10 +198,10 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(currentUsername) {
-        if (!isGuest && currentUsername.isNotBlank()) {
+    LaunchedEffect(currentUid) {
+        if (!isGuest && currentUid.isNotBlank()) {
             isLoadingReports = true
-            userReports = firebaseRepo.getProblemReportsForUser(currentUsername)
+            userReports = firebaseRepo.getProblemReportsForUser(currentUid)
             isLoadingReports = false
         }
     }
@@ -621,6 +626,7 @@ fun SettingsScreen(
                                         val fullTitle = "[$problemCategory] ${problemTitle.trim()}"
                                         val report = ProblemReport(
                                             reportId = UUID.randomUUID().toString(),
+                                            userUid = currentUid,
                                             username = currentUsername,
                                             title = fullTitle,
                                             description = problemDesc.trim(),
@@ -636,7 +642,7 @@ fun SettingsScreen(
                                             problemDesc = ""
                                             attachedImageUri = null
                                             attachedImageBase64 = ""
-                                            userReports = firebaseRepo.getProblemReportsForUser(currentUsername)
+                                            userReports = firebaseRepo.getProblemReportsForUser(currentUid)
                                         } else {
                                             Toast.makeText(context, context.getString(R.string.fail_submit_report), Toast.LENGTH_LONG).show()
                                         }

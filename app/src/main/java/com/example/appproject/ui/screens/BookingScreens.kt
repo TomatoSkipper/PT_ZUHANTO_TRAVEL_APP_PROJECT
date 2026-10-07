@@ -603,7 +603,7 @@ fun ReceiptScreen(
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.receipt_not_found))
             }
-        } else if (loggedInUser != booking!!.customerUsername && loggedInUser != ADMIN_USERNAME) {
+        } else if (loggedInUser != booking!!.customerUid) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.access_denied))
             }
@@ -911,7 +911,7 @@ fun InvoiceScreen(
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.invoice_not_found))
             }
-        } else if (loggedInUser != booking!!.customerUsername && loggedInUser != ADMIN_USERNAME) {
+        } else if (loggedInUser != booking!!.customerUid) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.access_denied))
             }

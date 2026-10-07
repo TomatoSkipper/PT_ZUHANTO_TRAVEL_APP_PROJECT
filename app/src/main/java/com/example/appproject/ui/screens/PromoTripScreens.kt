@@ -1191,7 +1191,7 @@ fun BookingDialog(
             val customer = firebaseRepo.getUser(username)
             val customerUid = customer?.uid?.ifBlank { null } ?: FirebaseAuth.getInstance().currentUser?.uid ?: ""
             if (appliedDiscount > 0) {
-                firebaseRepo.recordVoucherUsage(voucherCode, username)
+                firebaseRepo.recordVoucherUsage(voucherCode, customerUid)
             }
             val paxLabelText = if (isCustomPaxTrip) {
                 "$customPaxCount Pax" + (if (selectedTier.paxLabel.contains("Package", ignoreCase = true)) " - ${selectedTier.paxLabel}" else "")
@@ -1572,7 +1572,9 @@ fun BookingDialog(
                         onClick = {
                             if (voucherCode.isNotBlank()) {
                                 scope.launch {
-                                    val isUsed = firebaseRepo.isVoucherUsedByUser(voucherCode, username)
+                                    val customer = firebaseRepo.getUser(username)
+                                    val customerUid = customer?.uid?.ifBlank { null } ?: FirebaseAuth.getInstance().currentUser?.uid ?: username
+                                    val isUsed = firebaseRepo.isVoucherUsedByUser(voucherCode, customerUid)
                                     if (isUsed) {
                                         appliedDiscount = 0
                                         voucherStatusMessage = context.getString(R.string.used_voucher_message)

@@ -307,7 +307,7 @@ fun PaymentScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
             }
-        } else if (loggedInUser != null && loggedInUser != booking!!.customerUsername && loggedInUser != ADMIN_USERNAME) {
+        } else if (loggedInUser != null && loggedInUser != booking!!.customerUid) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -356,7 +356,7 @@ fun PaymentScreen(
                             if (matched != null) {
                                 val isUsed = firebaseRepo.isVoucherUsedByUser(
                                     code,
-                                    loggedInUser ?: currentBooking.customerUsername
+                                    currentBooking.customerUid
                                 )
                                 if (isUsed) {
                                     voucherMessage = voucherAlreadyUsedMsg
@@ -1017,9 +1017,9 @@ private suspend fun processPaymentCompletion(
     firebaseRepo.updateBooking(updatedBooking)
 
     // Mark voucher as used if applicable
-    if (appliedVoucher.isNotBlank() && booking.customerUsername.isNotBlank()) {
+    if (appliedVoucher.isNotBlank() && booking.customerUid.isNotBlank()) {
         try {
-            firebaseRepo.recordVoucherUsage(appliedVoucher, booking.customerUsername)
+            firebaseRepo.recordVoucherUsage(appliedVoucher, booking.customerUid)
         } catch (_: Exception) {}
     }
 
