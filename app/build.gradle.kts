@@ -70,7 +70,6 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.6")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.6")
     implementation(libs.androidx.appcompat)
-    implementation(libs.jbcrypt)
     implementation(libs.compose.icons.fontawesome)
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("io.coil-kt:coil-gif:2.6.0")

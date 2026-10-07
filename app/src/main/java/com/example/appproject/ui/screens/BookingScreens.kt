@@ -3,6 +3,7 @@ package com.example.appproject.ui.screens
 import android.content.Context
 import android.print.PrintAttributes
 import android.print.PrintManager
+import android.text.TextUtils
 import android.util.Base64
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -723,19 +724,19 @@ fun printReceipt(context: Context, booking: Booking) {
             </div>
             <div style="border: 1px solid #eee; padding: 20px; border-radius: 10px;">
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$bookingIdText</b></td><td style="text-align: right;">#${booking.bookingId}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$customerText</b></td><td style="text-align: right;">${booking.customerName}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$destinationText</b></td><td style="text-align: right;">${booking.destination}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$dateText</b></td><td style="text-align: right;">${booking.bookingDate}</td></tr>
-                    <tr><td style="padding: 8px 0;"><b>$phoneText</b></td><td style="text-align: right;">${booking.customerPhone}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$bookingIdText</b></td><td style="text-align: right;">#${TextUtils.htmlEncode(booking.bookingId)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$customerText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.customerName)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$destinationText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.destination)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$dateText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.bookingDate)}</td></tr>
+                    <tr><td style="padding: 8px 0;"><b>$phoneText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.customerPhone)}</td></tr>
                 </table>
                 
                 <div style="background: #fcfcfc; padding: 15px; border-radius: 5px;">
                     <table style="width: 100%;">
-                        <tr><td style="padding: 5px 0;">$normalPriceText</td><td style="text-align: right;">${if (booking.basePrice.isNotBlank()) booking.basePrice else booking.finalPrice}</td></tr>
-                        ${if (booking.voucherUsed.isNotBlank()) "<tr><td style='padding: 5px 0;'>$discountText (${booking.voucherUsed})</td><td style='text-align: right; color: red;'>- ${booking.discountAmount}</td></tr>" else ""}
+                        <tr><td style="padding: 5px 0;">$normalPriceText</td><td style="text-align: right;">${TextUtils.htmlEncode(if (booking.basePrice.isNotBlank()) booking.basePrice else booking.finalPrice)}</td></tr>
+                        ${if (booking.voucherUsed.isNotBlank()) "<tr><td style='padding: 5px 0;'>$discountText (${TextUtils.htmlEncode(booking.voucherUsed)})</td><td style='text-align: right; color: red;'>- ${TextUtils.htmlEncode(booking.discountAmount)}</td></tr>" else ""}
                         <tr style="font-size: 1.3em; font-weight: bold; color: #063763;">
-                            <td style="padding-top: 10px;">$totalPaidText</td><td style="text-align: right; padding-top: 10px;">${booking.finalPrice}</td>
+                            <td style="padding-top: 10px;">$totalPaidText</td><td style="text-align: right; padding-top: 10px;">${TextUtils.htmlEncode(booking.finalPrice)}</td>
                         </tr>
                     </table>
                 </div>
@@ -1122,20 +1123,20 @@ fun printInvoice(context: Context, booking: Booking) {
             </div>
             <div style="border: 1px solid #eee; padding: 20px; border-radius: 10px;">
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$bookingIdText</b></td><td style="text-align: right;">#${booking.bookingId}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$customerText</b></td><td style="text-align: right;">${booking.customerName}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$destinationText</b></td><td style="text-align: right;">${booking.destination}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$dateText</b></td><td style="text-align: right;">${booking.bookingDate}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$phoneText</b></td><td style="text-align: right;">${booking.customerPhone}</td></tr>
-                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$statusText</b></td><td style="text-align: right;">$statusDisplay</td></tr>
-                    <tr><td style="padding: 8px 0;"><b>$paymentStatusText</b></td><td style="text-align: right;">$paymentStatusDisplay</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$bookingIdText</b></td><td style="text-align: right;">#${TextUtils.htmlEncode(booking.bookingId)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$customerText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.customerName)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$destinationText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.destination)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$dateText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.bookingDate)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$phoneText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(booking.customerPhone)}</td></tr>
+                    <tr><td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;"><b>$statusText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(statusDisplay)}</td></tr>
+                    <tr><td style="padding: 8px 0;"><b>$paymentStatusText</b></td><td style="text-align: right;">${TextUtils.htmlEncode(paymentStatusDisplay)}</td></tr>
                 </table>
                 <div style="background: #fcfcfc; padding: 15px; border-radius: 5px;">
                     <table style="width: 100%;">
-                        <tr><td style="padding: 5px 0;">$normalPriceText</td><td style="text-align: right;">${if (booking.basePrice.isNotBlank()) booking.basePrice else booking.finalPrice}</td></tr>
-                        ${if (booking.voucherUsed.isNotBlank()) "<tr><td style='padding: 5px 0;'>$discountText (${booking.voucherUsed})</td><td style='text-align: right; color: red;'>- ${booking.discountAmount}</td></tr>" else ""}
+                        <tr><td style="padding: 5px 0;">$normalPriceText</td><td style="text-align: right;">${TextUtils.htmlEncode(if (booking.basePrice.isNotBlank()) booking.basePrice else booking.finalPrice)}</td></tr>
+                        ${if (booking.voucherUsed.isNotBlank()) "<tr><td style='padding: 5px 0;'>$discountText (${TextUtils.htmlEncode(booking.voucherUsed)})</td><td style='text-align: right; color: red;'>- ${TextUtils.htmlEncode(booking.discountAmount)}</td></tr>" else ""}
                         <tr style="font-size: 1.3em; font-weight: bold; color: #063763;">
-                            <td style="padding-top: 10px;">$totalPaidText</td><td style="text-align: right; padding-top: 10px;">${booking.finalPrice}</td>
+                            <td style="padding-top: 10px;">$totalPaidText</td><td style="text-align: right; padding-top: 10px;">${TextUtils.htmlEncode(booking.finalPrice)}</td>
                         </tr>
                     </table>
                 </div>

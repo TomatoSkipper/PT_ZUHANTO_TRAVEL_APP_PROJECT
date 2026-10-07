@@ -247,7 +247,6 @@ fun ProfileScreen(
                                                     username = newUsername,
                                                     email = email.trim(),
                                                     phone = phone.trim(),
-                                                    password = "",
                                                     isPhoneVerified = if (isPhoneChanged) false else it.isPhoneVerified
                                                 )
                                                 firebaseRepo.saveUser(updatedUser)

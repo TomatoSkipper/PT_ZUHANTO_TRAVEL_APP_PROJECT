@@ -10,6 +10,9 @@ data class User(
     @get:PropertyName("id")
     val id: Int = 0,
 
+    @get:PropertyName("uid")
+    val uid: String = "",
+
     @get:PropertyName("username")
     val username: String = "",
 
@@ -18,9 +21,6 @@ data class User(
 
     @get:PropertyName("phone")
     val phone: String = "",
-
-    @get:PropertyName("password")
-    val password: String = "",
 
     @get:PropertyName("isBanned") @set:PropertyName("isBanned") @get:JvmName("isBanned")
     var isBanned: Boolean = false,

@@ -883,7 +883,15 @@ fun RegisterScreen(
                 }
 
                 val finalUsername = username.ifBlank { email.trim().substringBefore("@").ifBlank { fullPhone } }
+                if (firebaseRepo.isUsernameRegistered(finalUsername)) {
+                    isloading = false
+                    errorMessage = "This username is already taken"
+                    return@launch
+                }
+
+                val currentUserUid = auth.currentUser?.uid ?: ""
                 val newUser = User(
+                    uid = currentUserUid,
                     username = finalUsername,
                     email = email.trim(),
                     phone = fullPhone,
@@ -924,20 +932,12 @@ fun RegisterScreen(
     }
 
     fun verifyTacAndRegister() {
-        val fullPhone = getFullPhoneNumber()
-        val username = name.trim()
-
-        if (phoneInput.trim() == "123456" && tacCode.trim() == "123456") {
-            saveNewUserAndFinish(fullPhone, username, true)
-            return
-        }
-
         if (tacCode.length != 6) {
             errorMessage = context.getString(R.string.error_tac_message)
             return
         }
 
-        if (verificationId != null && verificationId != "ADMIN_MOCK_VERIFICATION") {
+        if (verificationId != null) {
             isloading = true
             val credential = PhoneAuthProvider.getCredential(verificationId!!, tacCode.trim())
             completeRegistrationWithCredential(credential)
@@ -977,14 +977,6 @@ fun RegisterScreen(
                 if (phoneTaken) {
                     isloading = false
                     errorMessage = "This phone number is already registered to another account"
-                    return@launch
-                }
-
-                if (phoneInput.trim() == "123456") {
-                    isloading = false
-                    isTacSent = true
-                    verificationId = "ADMIN_MOCK_VERIFICATION"
-                    errorMessage = ""
                     return@launch
                 }
 
@@ -1325,14 +1317,6 @@ fun PhoneVerificationBookingDialog(
     }
 
     fun requestTacCode() {
-        if (phoneInput.trim() == "123456") {
-            isLoading = false
-            isTacSent = true
-            verificationId = "ADMIN_MOCK_VERIFICATION"
-            errorMessage = ""
-            return
-        }
-
         if (activity == null) {
             errorMessage = "Activity Reference Error"
             return
@@ -1369,15 +1353,11 @@ fun PhoneVerificationBookingDialog(
 
     fun verifyTac() {
         val fullPhone = getFullPhoneNumber()
-        if (phoneInput.trim() == "123456" && tacCode.trim() == "123456") {
-            onVerificationSuccess(fullPhone)
-            return
-        }
         if (tacCode.length != 6) {
             errorMessage = context.getString(R.string.error_tac_message)
             return
         }
-        if (verificationId != null && verificationId != "ADMIN_MOCK_VERIFICATION") {
+        if (verificationId != null) {
             isLoading = true
             val credential = PhoneAuthProvider.getCredential(verificationId!!, tacCode.trim())
             auth.signInWithCredential(credential)
@@ -1448,7 +1428,7 @@ fun PhoneVerificationBookingDialog(
                 onClick = {
                     if (!isTacSent) {
                         val fullPhone = getFullPhoneNumber()
-                        if (phoneInput.trim() == "123456" || isValidPhone(fullPhone)) {
+                        if (isValidPhone(fullPhone)) {
                             requestTacCode()
                         } else {
                             errorMessage = context.getString(R.string.error_invalid_phone)
@@ -1497,11 +1477,14 @@ private suspend fun handleGoogleSignInUser(
         if (cleanEmail.contains("@")) cleanEmail.substringBefore("@") else displayName.trim().lowercase(Locale.ROOT)
     }
 
+    val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid ?: existingUser?.uid ?: ""
     val userToSave = existingUser?.copy(
+        uid = if (existingUser.uid.isBlank()) currentUserUid else existingUser.uid,
         email = if (existingUser.email.isBlank()) cleanEmail else existingUser.email,
         name = if (existingUser.name.isBlank()) displayName else existingUser.name,
         phone = if (existingUser.phone.isBlank() && phone.isNotBlank()) phone else existingUser.phone
     ) ?: User(
+        uid = currentUserUid,
         username = targetUsername,
         email = cleanEmail,
         phone = phone,

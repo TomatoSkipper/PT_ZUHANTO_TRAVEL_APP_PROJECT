@@ -3,6 +3,7 @@ package com.example.appproject.ui.screens
 import android.app.DatePickerDialog
 import android.util.Log
 import android.widget.Toast
+import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOutQuad
 import androidx.compose.animation.core.Spring
@@ -1188,6 +1189,7 @@ fun BookingDialog(
     fun completeBookingCreation(customerPhone: String) {
         scope.launch {
             val customer = firebaseRepo.getUser(username)
+            val customerUid = customer?.uid?.ifBlank { null } ?: FirebaseAuth.getInstance().currentUser?.uid ?: ""
             if (appliedDiscount > 0) {
                 firebaseRepo.recordVoucherUsage(voucherCode, username)
             }
@@ -1199,6 +1201,7 @@ fun BookingDialog(
             firebaseRepo.saveBooking(
                 Booking(
                     bookingId = System.currentTimeMillis().toString(),
+                    customerUid = customerUid,
                     customerUsername = username,
                     customerName = customer?.username ?: username,
                     customerPhone = customerPhone,

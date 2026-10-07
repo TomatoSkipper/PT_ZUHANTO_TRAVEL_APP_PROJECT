@@ -97,6 +97,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.appproject.R
 import com.example.appproject.data.model.ADMIN_USERNAME
+import kotlinx.coroutines.tasks.await
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.ui.screens.AboutUsScreen
@@ -154,8 +155,20 @@ fun AppNavigationDrawer() {
     LaunchedEffect(Unit) {
         val savedUsername = sessionPreferences.getString("signed_in_username", null)
         if (savedUsername != null) {
+            val firebaseUser = FirebaseAuth.getInstance().currentUser
+            if (firebaseUser == null) {
+                sessionPreferences.edit().remove("signed_in_username").apply()
+                return@LaunchedEffect
+            }
+
             val restoredUsername = if (savedUsername == ADMIN_USERNAME) {
-                ADMIN_USERNAME
+                try {
+                    val tokenResult = firebaseUser.getIdToken(false).await()
+                    val isAdmin = tokenResult?.claims?.get("admin") as? Boolean == true
+                    if (isAdmin) ADMIN_USERNAME else null
+                } catch (_: Exception) {
+                    null
+                }
             } else {
                 try {
                     firebaseRepo.getUser(savedUsername)
