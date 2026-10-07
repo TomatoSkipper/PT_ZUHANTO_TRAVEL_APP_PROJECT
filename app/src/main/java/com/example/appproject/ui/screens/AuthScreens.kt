@@ -924,14 +924,6 @@ fun RegisterScreen(
     }
 
     fun verifyTacAndRegister() {
-        val fullPhone = getFullPhoneNumber()
-        val username = name.trim()
-
-        if (phoneInput.trim() == "123456" && tacCode.trim() == "123456") {
-            saveNewUserAndFinish(fullPhone, username, true)
-            return
-        }
-
         if (tacCode.length != 6) {
             errorMessage = context.getString(R.string.error_tac_message)
             return

@@ -14,7 +14,7 @@
 
     <application
         android:name=".TravelApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/app_icon_round"
@@ -22,8 +22,7 @@
         android:roundIcon="@mipmap/app_icon_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppProject"
-        android:localeConfig="@xml/locales_config"
-        android:usesCleartextTraffic="true">
+        android:localeConfig="@xml/locales_config">
 
         <activity
             android:name=".MainActivity"

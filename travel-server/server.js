@@ -18,7 +18,7 @@ if (!admin.apps.length) {
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
-    console.warn("[Warning] GEMINI_API_KEY environment variable is not set!");
+    console.warn("[Warning] GEMINI_API_KEY environment variable is not set! AI requests will fail with 401 Unauthorized.");
 }
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -96,7 +96,8 @@ async function generateContentWithRetry(model, prompt, maxRetries = 3, delayMs =
             return result;
         } catch (error) {
             console.warn(`[Gemini AI] Attempt ${attempt} failed: ${error.message}`);
-            if (attempt === maxRetries) {
+            // Fail fast on 401/403 (unauthorized API key) since retrying won't fix invalid credentials
+            if (error.status === 401 || error.status === 403 || error.message.includes('401') || error.message.includes('403') || attempt === maxRetries) {
                 throw error;
             }
             await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
@@ -122,6 +123,7 @@ app.post('/api/chat-suggest', optionalVerifyFirebaseToken, async (req, res) => {
     console.log(`[Gemini AI] User: ${req.user.uid} (Guest: ${!!req.user.isGuest}) | Destination: "${destination}" | Query: "${userMessage}"`);
 
     try {
+        // Keeping original user model: gemini-3.5-flash-lite
         const model = genAI.getGenerativeModel({
             model: 'gemini-3.5-flash-lite',
             systemInstruction: {
