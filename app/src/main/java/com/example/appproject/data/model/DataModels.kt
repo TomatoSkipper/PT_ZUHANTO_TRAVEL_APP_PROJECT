@@ -150,9 +150,6 @@ data class ManagementMember(
     val role: String
 )
 
-const val ADMIN_USERNAME = "Admin123"
-const val ADMIN_PHONE = "123456"
-const val ADMIN_TAC = "123456"
 
 val PhonePattern = Regex("^\\+?[0-9][0-9 ()-]{6,18}[0-9]$")
 
