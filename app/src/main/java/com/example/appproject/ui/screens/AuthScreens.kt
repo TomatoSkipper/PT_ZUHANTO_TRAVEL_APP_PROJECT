@@ -346,24 +346,32 @@ fun LoginScreen(
             isLoading = true
             try {
                 val authResult = auth.signInWithCredential(credential).await()
-                val userPhone = authResult.user?.phoneNumber ?: getFullPhoneNumber()
+                val firebaseUser = authResult.user
+                val userPhone = firebaseUser?.phoneNumber ?: getFullPhoneNumber()
 
-                val currentUser = firebaseRepo.getUser(userPhone)
-                if (currentUser == null) {
-                    isLoading = false
-                    errorMessage = context.getString(R.string.error_phone_not_registered)
-                    return@launch
+                val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                val isAdmin = tokenResult?.claims?.get("admin") == true
+
+                val targetUsername = if (isAdmin) {
+                    ADMIN_USERNAME
+                } else {
+                    val currentUser = firebaseRepo.getUser(userPhone)
+                    if (currentUser == null) {
+                        isLoading = false
+                        errorMessage = context.getString(R.string.error_phone_not_registered)
+                        return@launch
+                    }
+
+                    if (currentUser.isBanned) {
+                        isLoading = false
+                        errorMessage = context.getString(R.string.error_account_banned)
+                        return@launch
+                    }
+
+                    val updated = currentUser.copy(isPhoneVerified = true)
+                    firebaseRepo.updateUser(updated)
+                    currentUser.username
                 }
-
-                if (currentUser.isBanned) {
-                    isLoading = false
-                    errorMessage = context.getString(R.string.error_account_banned)
-                    return@launch
-                }
-
-                val updated = currentUser.copy(isPhoneVerified = true)
-                firebaseRepo.updateUser(updated)
-                val targetUsername = currentUser.username
 
                 val preferences = context.getSharedPreferences(
                     "user_session",
@@ -388,14 +396,6 @@ fun LoginScreen(
     }
 
     fun requestTacCode() {
-        if (phoneInput.trim() == "123456") {
-            isLoading = false
-            isTacSent = true
-            verificationId = "ADMIN_MOCK_VERIFICATION"
-            errorMessage = ""
-            return
-        }
-
         if (activity == null) {
             errorMessage = "Activity Reference Error"
             return
@@ -407,13 +407,6 @@ fun LoginScreen(
         val fullPhone = getFullPhoneNumber()
 
         scope.launch {
-            val existingUser = firebaseRepo.getUser(fullPhone)
-            if (existingUser == null) {
-                isLoading = false
-                errorMessage = context.getString(R.string.error_phone_not_registered)
-                return@launch
-            }
-
             val options = PhoneAuthOptions.newBuilder(auth)
                 .setPhoneNumber(fullPhone)
                 .setTimeout(60L, TimeUnit.SECONDS)
@@ -587,29 +580,15 @@ fun LoginScreen(
                             onClick = {
                                 if (!isTacSent) {
                                     val fullPhone = getFullPhoneNumber()
-                                    if (phoneInput.trim() == "123456" || isValidPhone(fullPhone)) {
+                                    if (isValidPhone(fullPhone)) {
                                         requestTacCode()
                                     } else {
                                         errorMessage = context.getString(R.string.error_invalid_phone)
                                     }
                                 } else {
-                                    if (phoneInput.trim() == "123456" && tacCode.trim() == "123456") {
-                                        val preferences = context.getSharedPreferences(
-                                            "user_session",
-                                            Context.MODE_PRIVATE
-                                        )
-                                        if (staySignedIn) {
-                                            preferences.edit().putString("signed_in_username",
-                                                ADMIN_USERNAME
-                                            ).apply()
-                                        } else {
-                                            preferences.edit().remove("signed_in_username").apply()
-                                        }
-                                        isLoading = false
-                                        onLoginSuccess(ADMIN_USERNAME)
-                                    } else if (tacCode.length != 6) {
+                                    if (tacCode.length != 6) {
                                         errorMessage = "Please enter a valid 6-digit TAC code"
-                                    } else if (verificationId != null && verificationId != "ADMIN_MOCK_VERIFICATION") {
+                                    } else if (verificationId != null) {
                                         val credential = PhoneAuthProvider.getCredential(verificationId!!, tacCode.trim())
                                         completeLogin(credential)
                                     } else {

@@ -1352,66 +1352,6 @@ fun CategoryItem(
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun FeaturedDestinationItem(name: String, imageRes: Int, modifier: Modifier = Modifier) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "scale"
-    )
-
-    Card(
-        modifier = modifier
-            .height(160.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { /* Navigate */ }
-            )
-            .motionEventSpy { event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> isPressed = true
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isPressed = false
-                }
-            },
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Box {
-            AsyncImage(
-                model = imageRes,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                            startY = 80f
-                        )
-                    )
-            )
-            Text(
-                text = name,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(12.dp),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
 fun ServiceItem(
     title: String,
     description: String,
