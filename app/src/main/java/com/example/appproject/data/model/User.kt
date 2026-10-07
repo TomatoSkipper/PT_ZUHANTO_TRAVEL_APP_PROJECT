@@ -31,3 +31,5 @@ data class User(
     @get:PropertyName("name")
     val name: String = ""
 )
+
+const val ADMIN_USERNAME = "Admin123"
