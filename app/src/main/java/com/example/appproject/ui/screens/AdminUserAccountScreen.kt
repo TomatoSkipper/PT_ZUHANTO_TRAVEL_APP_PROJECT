@@ -206,7 +206,7 @@ fun AdminUsersScreen(firebaseRepo: FirebaseRepository) {
                     }
                 }
             } else {
-                items(filteredUsers, key = { it.username }) { user ->
+                items(filteredUsers, key = { it.uid.ifBlank { it.username } }) { user ->
                     AdminUserAccountCard(
                         user = user,
                         onBanOrUnban = {
@@ -246,7 +246,7 @@ fun AdminUsersScreen(firebaseRepo: FirebaseRepository) {
                                 "ban", "unban" -> {
                                     val updatedUser = user.copy(isBanned = pendingAction == "ban")
                                     firebaseRepo.updateUser(updatedUser)
-                                    users = users.map { if (it.username == updatedUser.username) updatedUser else it }
+                                    users = users.map { if (it.uid == updatedUser.uid) updatedUser else it }
                                 }
                                 "delete" -> {
                                     firebaseRepo.deleteUser(user.uid)
