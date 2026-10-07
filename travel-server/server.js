@@ -4,9 +4,16 @@ const cors = require('cors');
 const admin = require('firebase-admin');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Initialize Firebase Admin (uses GOOGLE_APPLICATION_CREDENTIALS or default app)
+// Initialize Firebase Admin with explicit project ID to prevent metadata.google.internal lookup on Render
 if (!admin.apps.length) {
-    admin.initializeApp();
+    try {
+        admin.initializeApp({
+            projectId: process.env.FIREBASE_PROJECT_ID || 'appproject-8a77a099'
+        });
+    } catch (e) {
+        console.warn('[Firebase Admin Warning]:', e.message);
+        admin.initializeApp();
+    }
 }
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -25,7 +32,6 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, server-to-server) or from allowed origins
         if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
             callback(null, true);
         } else {
@@ -35,7 +41,7 @@ app.use(cors({
     credentials: true
 }));
 
-// 2. Rate Limiting Middleware (In-memory token bucket / sliding window per IP)
+// 2. Rate Limiting Middleware (In-memory token bucket / sliding window per IP - applies equally to logged-in & guest users)
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX_REQUESTS = 30; // Max 30 requests per 15 minutes per IP
@@ -61,11 +67,12 @@ app.use('/api/', (req, res, next) => {
     next();
 });
 
-// 3. Authentication Middleware: Verify Firebase Auth Token
-async function verifyFirebaseToken(req, res, next) {
+// 3. Optional Authentication Middleware: Verify Firebase token if present, otherwise allow as Guest with same IP rate limit
+async function optionalVerifyFirebaseToken(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized: Missing or invalid authorization token' });
+        req.user = { uid: 'guest', isGuest: true };
+        return next();
     }
 
     const token = authHeader.split('Bearer ')[1];
@@ -74,8 +81,9 @@ async function verifyFirebaseToken(req, res, next) {
         req.user = decodedToken;
         next();
     } catch (error) {
-        console.error('[Auth Error]: Failed to verify Firebase token:', error.message);
-        return res.status(403).json({ error: 'Unauthorized: Invalid or expired token' });
+        console.warn('[Auth Warning]: Token verification failed, allowing as guest:', error.message);
+        req.user = { uid: 'guest', isGuest: true };
+        next();
     }
 }
 
@@ -96,7 +104,7 @@ async function generateContentWithRetry(model, prompt, maxRetries = 3, delayMs =
     }
 }
 
-app.post('/api/chat-suggest', verifyFirebaseToken, async (req, res) => {
+app.post('/api/chat-suggest', optionalVerifyFirebaseToken, async (req, res) => {
     let { userMessage, destination, days } = req.body;
 
     // Input sanitization and validation
@@ -111,10 +119,9 @@ app.post('/api/chat-suggest', verifyFirebaseToken, async (req, res) => {
         days = 3;
     }
 
-    console.log(`[Gemini AI] User: ${req.user.uid} | Destination: "${destination}" | Query: "${userMessage}"`);
+    console.log(`[Gemini AI] User: ${req.user.uid} (Guest: ${!!req.user.isGuest}) | Destination: "${destination}" | Query: "${userMessage}"`);
 
     try {
-        // Use systemInstruction and strict data wrapping to prevent prompt / instruction injection
         const model = genAI.getGenerativeModel({
             model: 'gemini-3.5-flash-lite',
             systemInstruction: {
