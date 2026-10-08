@@ -85,6 +85,7 @@ import com.example.appproject.data.model.User
 import com.example.appproject.data.model.defaultCountryCodes
 import com.example.appproject.data.model.isValidEmail
 import com.example.appproject.data.model.isValidPhone
+import com.example.appproject.data.model.isUserAdmin
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -349,13 +350,17 @@ fun LoginScreen(
                 val userPhone = firebaseUser?.phoneNumber ?: getFullPhoneNumber()
 
                 val tokenResult = firebaseUser?.getIdToken(true)?.await()
-                val isAdmin = tokenResult?.claims?.get("admin") == true
+                val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
 
+                val userUid = firebaseUser?.uid ?: ""
                 val targetUsername = if (isAdmin) {
                     // Set a default username for admin users
                     "Admin"
                 } else {
-                    val currentUser = firebaseRepo.getUser(userPhone)
+                    var currentUser = if (userUid.isNotBlank()) firebaseRepo.getUser(userUid) else null
+                    if (currentUser == null) {
+                        currentUser = firebaseRepo.getUser(userPhone)
+                    }
                     if (currentUser == null) {
                         isLoading = false
                         errorMessage = context.getString(R.string.error_phone_not_registered)

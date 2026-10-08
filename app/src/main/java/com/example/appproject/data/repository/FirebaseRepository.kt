@@ -86,6 +86,24 @@ class FirebaseRepository {
             if (user == null) {
                 val phoneDocs = usersCollection?.whereEqualTo("phone", cleanQuery)?.get()?.await()
                 user = phoneDocs?.documents?.firstOrNull()?.toObject(User::class.java)
+
+                if (user == null && cleanQuery.startsWith("+")) {
+                    val noPlus = cleanQuery.removePrefix("+")
+                    val noPlusDocs = usersCollection?.whereEqualTo("phone", noPlus)?.get()?.await()
+                    user = noPlusDocs?.documents?.firstOrNull()?.toObject(User::class.java)
+                }
+
+                if (user == null && cleanQuery.startsWith("+60")) {
+                    val local = "0" + cleanQuery.removePrefix("+60")
+                    val localDocs = usersCollection?.whereEqualTo("phone", local)?.get()?.await()
+                    user = localDocs?.documents?.firstOrNull()?.toObject(User::class.java)
+                }
+
+                if (user == null && cleanQuery.startsWith("+62")) {
+                    val local = "0" + cleanQuery.removePrefix("+62")
+                    val localDocs = usersCollection?.whereEqualTo("phone", local)?.get()?.await()
+                    user = localDocs?.documents?.firstOrNull()?.toObject(User::class.java)
+                }
             }
 
             // 5. Query by username property
@@ -436,5 +454,57 @@ class FirebaseRepository {
         } catch (e: Exception) {
             Log.e(TAG, "Error updating problem report feedback: ${e.message}")
         }
+    }
+
+    suspend fun isUserAuthorizedForBooking(booking: Booking?, loggedInUser: String?): Boolean {
+        if (booking == null) return false
+
+        val currentFirebaseUid = try {
+            FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+        val userParam = loggedInUser?.trim() ?: ""
+
+        // 1. If booking customer identifiers are blank, treat as accessible to logged-in user
+        if (booking.customerUid.isBlank() && booking.customerUsername.isBlank()) {
+            return currentFirebaseUid.isNotBlank() || userParam.isNotBlank()
+        }
+
+        // 2. Direct match against customerUid or customerUsername
+        if (currentFirebaseUid.isNotBlank()) {
+            if (currentFirebaseUid == booking.customerUid || currentFirebaseUid == booking.customerUsername) {
+                return true
+            }
+        }
+        if (userParam.isNotBlank()) {
+            if (userParam == booking.customerUid || userParam == booking.customerUsername) {
+                return true
+            }
+        }
+
+        // 3. Admin check
+        if (currentFirebaseUid.isNotBlank() && com.example.appproject.data.model.isUserAdmin(currentFirebaseUid, null)) {
+            return true
+        }
+
+        // 4. Resolve User document
+        val query = currentFirebaseUid.ifBlank { userParam }
+        if (query.isNotBlank()) {
+            val user = getUser(query)
+            if (user != null) {
+                if (com.example.appproject.data.model.isUserAdmin(user.uid, null)) {
+                    return true
+                }
+                if (user.uid.isNotBlank() && (user.uid == booking.customerUid || user.uid == booking.customerUsername)) {
+                    return true
+                }
+                if (user.username.isNotBlank() && (user.username == booking.customerUid || user.username == booking.customerUsername)) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 }

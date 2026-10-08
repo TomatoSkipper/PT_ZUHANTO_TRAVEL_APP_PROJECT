@@ -97,7 +97,12 @@ class PaymentScreen : ComponentActivity() {
         PaymentConfiguration.init(applicationContext, publishableKey)
 
         val bookingId = intent.getStringExtra("BOOKING_ID") ?: ""
-        val loggedInUser = intent.getStringExtra("LOGGED_IN_USER") ?: ""
+        val loggedInUserExtra = intent.getStringExtra("LOGGED_IN_USER")
+        val loggedInUser = if (!loggedInUserExtra.isNullOrBlank()) {
+            loggedInUserExtra
+        } else {
+            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        }
         val firebaseRepo = FirebaseRepository()
 
         setContent {
@@ -140,6 +145,7 @@ fun PaymentScreen(
 
     var booking by remember { mutableStateOf<Booking?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAuthorized by remember { mutableStateOf(true) }
     var isProcessingPayment by remember { mutableStateOf(false) }
     var paymentSuccessDialog by remember { mutableStateOf(false) }
 
@@ -196,12 +202,13 @@ fun PaymentScreen(
         }
     }
 
-    LaunchedEffect(bookingId) {
+    LaunchedEffect(bookingId, loggedInUser) {
         PaymentConfiguration.init(context, publishableKey)
         if (bookingId.isNotBlank()) {
             val fetched = firebaseRepo.getBooking(bookingId)
             booking = fetched
             if (fetched != null) {
+                isAuthorized = firebaseRepo.isUserAuthorizedForBooking(fetched, loggedInUser)
                 if (fetched.voucherUsed.isNotBlank()) {
                     appliedVoucherCode = fetched.voucherUsed
                     discountValue = parseCurrencyToDouble(fetched.discountAmount)
@@ -306,7 +313,7 @@ fun PaymentScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
             }
-        } else if (loggedInUser != null && loggedInUser != booking!!.customerUid) {
+        } else if (!isAuthorized) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -353,9 +360,14 @@ fun PaymentScreen(
                                 it["code"]?.toString()?.equals(code, ignoreCase = true) == true
                             }
                             if (matched != null) {
+                                val targetUserForVoucher = currentBooking.customerUid.ifBlank {
+                                    currentBooking.customerUsername.ifBlank {
+                                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                                    }
+                                }
                                 val isUsed = firebaseRepo.isVoucherUsedByUser(
                                     code,
-                                    currentBooking.customerUid
+                                    targetUserForVoucher
                                 )
                                 if (isUsed) {
                                     voucherMessage = voucherAlreadyUsedMsg
@@ -1016,9 +1028,14 @@ private suspend fun processPaymentCompletion(
     firebaseRepo.updateBooking(updatedBooking)
 
     // Mark voucher as used if applicable
-    if (appliedVoucher.isNotBlank() && booking.customerUid.isNotBlank()) {
+    val uidToRecord = booking.customerUid.ifBlank {
+        booking.customerUsername.ifBlank {
+            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        }
+    }
+    if (appliedVoucher.isNotBlank() && uidToRecord.isNotBlank()) {
         try {
-            firebaseRepo.recordVoucherUsage(appliedVoucher, booking.customerUid)
+            firebaseRepo.recordVoucherUsage(appliedVoucher, uidToRecord)
         } catch (_: Exception) {}
     }
 

@@ -384,3 +384,12 @@ fun getPaymentStatusDisplay(status: String?, context: Context? = null): String {
         else -> context?.getString(R.string.pending) ?: "Pending"
     }
 }
+
+const val ADMIN_UID = "0TGdUZiaJnc92nOGPsRdQMqubWV2"
+
+fun isUserAdmin(uid: String?, claims: Map<String, Any>?): Boolean {
+    if (!uid.isNullOrBlank() && uid == ADMIN_UID) return true
+    if (claims == null) return false
+    val adminClaim = claims["admin"]
+    return adminClaim == true || adminClaim?.toString()?.lowercase() == "true"
+}

@@ -15,6 +15,7 @@ import com.example.appproject.R
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.remote.FetchPromoTripsFromWebsite
 import com.example.appproject.data.repository.FirebaseRepository
+import com.example.appproject.data.model.isUserAdmin
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
@@ -185,8 +186,8 @@ class BookingCheckWorker(
             val firebaseUser = FirebaseAuth.getInstance().currentUser
             if (firebaseUser != null) {
                 val uid = firebaseUser.uid
-                val tokenResult = firebaseUser.getIdToken(false).await()
-                val isAdmin = tokenResult?.claims?.get("admin") == true
+                val tokenResult = firebaseUser.getIdToken(true).await()
+                val isAdmin = isUserAdmin(uid, tokenResult?.claims)
                 val firebaseRepo = FirebaseRepository()
                 if (isAdmin) {
                     val allBookings = firebaseRepo.getAllBookings()

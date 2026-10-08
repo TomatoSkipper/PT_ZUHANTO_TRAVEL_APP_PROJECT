@@ -569,9 +569,13 @@ fun ReceiptScreen(
     val context = LocalContext.current
     var booking by remember { mutableStateOf<Booking?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAuthorized by remember { mutableStateOf(true) }
 
-    LaunchedEffect(bookingId) {
+    LaunchedEffect(bookingId, loggedInUser) {
         booking = firebaseRepo.getBooking(bookingId)
+        if (booking != null) {
+            isAuthorized = firebaseRepo.isUserAuthorizedForBooking(booking, loggedInUser)
+        }
         isLoading = false
     }
 
@@ -602,7 +606,7 @@ fun ReceiptScreen(
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.receipt_not_found))
             }
-        } else if (loggedInUser != booking!!.customerUid) {
+        } else if (!isAuthorized) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.access_denied))
             }
@@ -877,9 +881,13 @@ fun InvoiceScreen(
     val context = LocalContext.current
     var booking by remember { mutableStateOf<Booking?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAuthorized by remember { mutableStateOf(true) }
 
-    LaunchedEffect(bookingId) {
+    LaunchedEffect(bookingId, loggedInUser) {
         booking = firebaseRepo.getBooking(bookingId)
+        if (booking != null) {
+            isAuthorized = firebaseRepo.isUserAuthorizedForBooking(booking, loggedInUser)
+        }
         isLoading = false
     }
 
@@ -910,7 +918,7 @@ fun InvoiceScreen(
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.invoice_not_found))
             }
-        } else if (loggedInUser != booking!!.customerUid) {
+        } else if (!isAuthorized) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.access_denied))
             }

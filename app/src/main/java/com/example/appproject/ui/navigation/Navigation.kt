@@ -97,6 +97,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.appproject.R
 import kotlinx.coroutines.tasks.await
+import com.example.appproject.data.model.isUserAdmin
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.ui.screens.AboutUsScreen
@@ -175,8 +176,8 @@ fun AppNavigationDrawer() {
         if (firebaseUser != null) {
             val uid = firebaseUser.uid
             try {
-                val tokenResult = firebaseUser.getIdToken(false).await()
-                val isAdmin = tokenResult?.claims?.get("admin") as? Boolean == true
+                val tokenResult = firebaseUser.getIdToken(true).await()
+                val isAdmin = isUserAdmin(uid, tokenResult?.claims)
                 isAdminLoggedIn = isAdmin
 
                 val user = firebaseRepo.getUser(uid)
@@ -767,8 +768,8 @@ fun AppNavigationDrawer() {
                             onLoginSuccess = { user ->
                                 scope.launch {
                                     val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                    val tokenResult = firebaseUser?.getIdToken(false)?.await()
-                                    val isAdmin = tokenResult?.claims?.get("admin") == true
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
                                     isAdminLoggedIn = isAdmin
                                     loggedInUser = user
                                     val destination = if (isAdmin) "admin" else "dashboard/$user"
@@ -819,8 +820,8 @@ fun AppNavigationDrawer() {
                                 onLoginSuccess = { user ->
                                     scope.launch {
                                         val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
-                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
                                         isAdminLoggedIn = isAdmin
                                         loggedInUser = user
                                         val destination = if (isAdmin) "admin" else "dashboard/$user"
@@ -842,8 +843,8 @@ fun AppNavigationDrawer() {
                                 onLoginSuccess = { user ->
                                     scope.launch {
                                         val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
-                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
                                         isAdminLoggedIn = isAdmin
                                         loggedInUser = user
                                         val destination = if (isAdmin) "admin" else "dashboard/$user"
@@ -865,8 +866,8 @@ fun AppNavigationDrawer() {
                                 onLoginSuccess = { user ->
                                     scope.launch {
                                         val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
-                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
                                         isAdminLoggedIn = isAdmin
                                         loggedInUser = user
                                         val destination = if (isAdmin) "admin" else "dashboard/$user"
@@ -937,8 +938,8 @@ fun AppNavigationDrawer() {
                                 onLoginSuccess = { user ->
                                     scope.launch {
                                         val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(false)?.await()
-                                        val isAdmin = tokenResult?.claims?.get("admin") == true
+                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
                                         isAdminLoggedIn = isAdmin
                                         loggedInUser = user
                                         val destination = if (isAdmin) "admin" else "dashboard/$user"
@@ -1066,8 +1067,8 @@ fun AppNavigationDrawer() {
                             onRegisterSuccess = { newUsername ->
                                 scope.launch {
                                     val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                    val tokenResult = firebaseUser?.getIdToken(false)?.await()
-                                    val isAdmin = tokenResult?.claims?.get("admin") == true
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
                                     isAdminLoggedIn = isAdmin
                                     loggedInUser = newUsername
                                     val destination = if (isAdmin) "admin" else "dashboard/$newUsername"

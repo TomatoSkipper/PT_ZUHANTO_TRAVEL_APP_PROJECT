@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.appproject.R
+import com.example.appproject.data.model.isUserAdmin
 import com.example.appproject.data.model.LanguageManager
 import com.example.appproject.data.model.LanguageOption
 import com.example.appproject.data.model.ProblemReport
@@ -127,8 +128,8 @@ fun SettingsScreen(
             val firebaseUser = FirebaseAuth.getInstance().currentUser
             if (firebaseUser != null) {
                 try {
-                    val tokenResult = firebaseUser.getIdToken(false).await()
-                    isAdmin = tokenResult?.claims?.get("admin") == true || tokenResult?.claims?.get("admin")?.toString() == "true"
+                    val tokenResult = firebaseUser.getIdToken(true).await()
+                    isAdmin = isUserAdmin(firebaseUser.uid, tokenResult?.claims)
                 } catch (_: Exception) {
                     isAdmin = false
                 }
