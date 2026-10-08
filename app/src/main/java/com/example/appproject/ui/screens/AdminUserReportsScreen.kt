@@ -47,6 +47,9 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import android.util.Base64
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +84,7 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
     var searchQuery by remember { mutableStateOf("") }
     var activeFilter by rememberSaveable { mutableStateOf("All") }
     var editingReport by remember { mutableStateOf<ProblemReport?>(null) }
+    var selectedPhotoForZoom by remember { mutableStateOf<Pair<String, String>?>(null) }
     var feedbackInput by remember { mutableStateOf("") }
     var statusInput: String by remember { mutableStateOf("In Progress") }
     val scope = rememberCoroutineScope()
@@ -365,6 +369,45 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                                 color = Color(0xFF64748B)
                             )
 
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = report.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF334155)
+                            )
+
+                            if (report.photoBase64.isNotBlank()) {
+                                val imageBytes = remember(report.photoBase64) {
+                                    try {
+                                        val clean = report.photoBase64.replace("\n", "").replace("\r", "").trim()
+                                        if (clean.isNotBlank()) Base64.decode(clean, Base64.DEFAULT) else null
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+                                }
+                                if (imageBytes != null) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedPhotoForZoom = Pair(displayTitle, report.photoBase64)
+                                            }
+                                    ) {
+                                        AsyncImage(
+                                            model = imageBytes,
+                                            contentDescription = "Attached photo",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(160.dp)
+                                                .clip(RoundedCornerShape(12.dp)),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                            }
+
                             if (report.adminFeedback.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Column(
@@ -531,6 +574,16 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                     Text(stringResource(android.R.string.cancel), color = Color(0xFF334155), fontWeight = FontWeight.SemiBold)
                 }
             }
+        )
+    }
+
+    // Photo Zoom Dialog
+    if (selectedPhotoForZoom != null) {
+        val (title, photoBase64) = selectedPhotoForZoom!!
+        FullScreenImageDialog(
+            photoBase64 = photoBase64,
+            title = title,
+            onDismiss = { selectedPhotoForZoom = null }
         )
     }
 }

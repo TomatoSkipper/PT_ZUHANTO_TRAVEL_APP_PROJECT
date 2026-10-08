@@ -682,15 +682,15 @@ fun BookingEditDialog(
     var paymentStatus by remember(booking) { mutableStateOf(normalizePaymentStatus(booking.paymentStatus)) }
 
     val bookingStatusOptions = listOf(
-        StatusOption(stringResource(R.string.pending), stringResource(R.string.pending)),
-        StatusOption(stringResource(R.string.confirmed), stringResource(R.string.confirmed)),
-        StatusOption(stringResource(R.string.cancelled), stringResource(R.string.cancelled))
+        StatusOption("Pending", stringResource(R.string.pending)),
+        StatusOption("Confirmed", stringResource(R.string.confirmed)),
+        StatusOption("Cancelled", stringResource(R.string.cancelled))
     )
 
     val paymentStatusOptions = listOf(
-        StatusOption(stringResource(R.string.pending), stringResource(R.string.pending)),
-        StatusOption(stringResource(R.string.paid), stringResource(R.string.paid)),
-        StatusOption(stringResource(R.string.cancelled), stringResource(R.string.cancelled))
+        StatusOption("Pending", stringResource(R.string.pending)),
+        StatusOption("Paid", stringResource(R.string.paid)),
+        StatusOption("Cancelled", stringResource(R.string.cancelled))
     )
 
     val context = LocalContext.current

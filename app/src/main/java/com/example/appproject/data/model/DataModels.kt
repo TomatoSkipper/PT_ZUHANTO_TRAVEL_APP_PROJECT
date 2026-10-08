@@ -349,9 +349,9 @@ fun normalizeBookingStatus(status: String?): String {
     if (status.isNullOrBlank()) return "Pending"
     val lower = status.trim().lowercase()
     return when {
-        lower.contains("confirm") -> "Confirmed"
-        lower.contains("cancel") -> "Cancelled"
-        lower.contains("complete") -> "Completed"
+        lower.contains("confirm") || lower.contains("sah") -> "Confirmed"
+        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
+        lower.contains("complete") || lower.contains("selesai") -> "Completed"
         else -> "Pending"
     }
 }
@@ -360,8 +360,8 @@ fun normalizePaymentStatus(status: String?): String {
     if (status.isNullOrBlank()) return "Pending"
     val lower = status.trim().lowercase()
     return when {
-        lower.contains("paid") -> "Paid"
-        lower.contains("cancel") -> "Cancelled"
+        lower.contains("paid") || lower.contains("bayar") || lower.contains("lunas") -> "Paid"
+        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
         else -> "Pending"
     }
 }

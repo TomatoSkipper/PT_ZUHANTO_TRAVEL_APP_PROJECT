@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -531,23 +532,12 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(6.dp))
                             val categories = listOf(context.getString(R.string.booking_issue), context.getString(R.string.app_bug), context.getString(R.string.payment), context.getString(R.string.general_inquiry), context.getString(R.string.other))
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                categories.take(3).forEach { cat ->
-                                    FilterChip(
-                                        selected = problemCategory == cat,
-                                        onClick = { problemCategory = cat },
-                                        label = { Text(cat, style = MaterialTheme.typography.labelSmall) },
-                                        shape = RoundedCornerShape(10.dp)
-                                    )
-                                }
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                categories.drop(3).forEach { cat ->
+                                categories.forEach { cat ->
                                     FilterChip(
                                         selected = problemCategory == cat,
                                         onClick = { problemCategory = cat },
@@ -712,7 +702,9 @@ fun SettingsScreen(
 
                         // Filter Chips for User History
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val filters = listOf(context.getString(R.string.all), context.getString(R.string.pending), context.getString(R.string.in_progress), context.getString(R.string.resolved))
