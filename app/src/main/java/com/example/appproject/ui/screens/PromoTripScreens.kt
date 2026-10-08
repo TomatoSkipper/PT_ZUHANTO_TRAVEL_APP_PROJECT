@@ -1160,6 +1160,8 @@ fun BookingDialog(
         }
     }
 
+
+
     var selectedTier by remember { mutableStateOf(availableTiers.first()) }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
@@ -1254,88 +1256,9 @@ fun BookingDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (isCustomPaxTrip) {
-                    if (availableTiers.size > 1) {
-                        Text(
-                            text = stringResource(R.string.select_package_options),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Surface(
-                                onClick = { dropdownExpanded = true },
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = selectedTier.paxLabel,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = getFormattedTierPrice(selectedTier),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.secondary,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowDropDown,
-                                        contentDescription = "Select Option",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-
-                            DropdownMenu(
-                                expanded = dropdownExpanded,
-                                onDismissRequest = { dropdownExpanded = false },
-                                modifier = Modifier.fillMaxWidth(0.85f)
-                            ) {
-                                availableTiers.forEach { tier ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Column {
-                                                Text(
-                                                    text = tier.paxLabel,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = getFormattedTierPrice(tier),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.secondary
-                                                )
-                                            }
-                                        },
-                                        onClick = {
-                                            selectedTier = tier
-                                            dropdownExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
                     val minPax = customPaxMin ?: 1
                     Text(
-                        text = stringResource(R.string.customized_number_travelers) + "(Min $minPax Pax)",
+                        text = stringResource(R.string.customized_number_travelers) + " (Min $minPax Pax)",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -1398,7 +1321,7 @@ fun BookingDialog(
                     }
                 } else {
                     Text(
-                        text = stringResource(R.string.select_number_of_pax),
+                        text = if (availableTiers.size > 1) stringResource(R.string.select_package_options) else stringResource(R.string.select_number_of_pax),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -1474,6 +1397,8 @@ fun BookingDialog(
                                 }
                             }
                         }
+
+
                     }
                 }
 

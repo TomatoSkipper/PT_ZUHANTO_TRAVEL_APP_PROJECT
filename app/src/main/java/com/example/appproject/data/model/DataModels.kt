@@ -385,6 +385,27 @@ fun getPaymentStatusDisplay(status: String?, context: Context? = null): String {
     }
 }
 
+fun normalizeReportStatus(status: String?): String {
+    if (status.isNullOrBlank()) return "Pending"
+    val lower = status.trim().lowercase()
+    return when {
+        lower.contains("progress") || lower.contains("proses") || lower.contains("in_progress") || lower.contains("dijalankan") || lower.contains("sedang") -> "In Progress"
+        lower.contains("resolve") || lower.contains("selesai") || lower.contains("complete") || lower.contains("diselesaikan") -> "Resolved"
+        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
+        else -> "Pending"
+    }
+}
+
+fun getReportStatusDisplay(status: String?, context: Context? = null): String {
+    val norm = normalizeReportStatus(status)
+    return when (norm) {
+        "In Progress" -> context?.getString(R.string.in_progress) ?: "In Progress"
+        "Resolved" -> context?.getString(R.string.resolved) ?: "Resolved"
+        "Cancelled" -> context?.getString(R.string.cancelled) ?: "Cancelled"
+        else -> context?.getString(R.string.pending) ?: "Pending"
+    }
+}
+
 const val ADMIN_UID = "0TGdUZiaJnc92nOGPsRdQMqubWV2"
 
 fun isUserAdmin(uid: String?, claims: Map<String, Any>?): Boolean {

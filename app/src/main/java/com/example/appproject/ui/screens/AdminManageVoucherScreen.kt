@@ -386,11 +386,11 @@ fun AdminVouchersScreen(firebaseRepo: FirebaseRepository) {
                             }
                         } else {
                             adminVouchers.forEachIndexed { index, voucher ->
-                                val code = voucher[stringResource(R.string.code)]?.toString() ?: ""
-                                val discount = voucher[stringResource(R.string.discount_percentage)]?.toString() ?: "0"
-                                val desc = voucher[stringResource(R.string.description)]?.toString() ?: ""
-                                val start = voucher[stringResource(R.string.start_date)]?.toString() ?: ""
-                                val end = voucher[stringResource(R.string.end_date)]?.toString() ?: ""
+                                val code = voucher["code"]?.toString() ?: ""
+                                val discount = voucher["discountPercentage"]?.toString() ?: "0"
+                                val desc = voucher["description"]?.toString() ?: ""
+                                val start = voucher["startDate"]?.toString() ?: ""
+                                val end = voucher["endDate"]?.toString() ?: ""
 
                                 val currentTime = System.currentTimeMillis()
                                 var isEnded = false

@@ -699,7 +699,7 @@ fun SettingsScreen(
                                 onClick = {
                                     scope.launch {
                                         isLoadingReports = true
-                                        userReports = firebaseRepo.getProblemReportsForUser(currentUsername)
+                                        userReports = firebaseRepo.getProblemReportsForUser(currentUid)
                                         isLoadingReports = false
                                     }
                                 }

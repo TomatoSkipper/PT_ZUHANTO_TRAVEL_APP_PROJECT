@@ -64,6 +64,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.appproject.R
 import com.example.appproject.data.model.ProblemReport
+import com.example.appproject.data.model.StatusOption
+import com.example.appproject.data.model.getReportStatusDisplay
+import com.example.appproject.data.model.normalizeReportStatus
 import com.example.appproject.data.repository.FirebaseRepository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -294,11 +297,12 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                         fullTitle.substringAfter("]").trim()
                     } else fullTitle
 
-                    val statusLower = report.status.trim().lowercase()
-                    val (statusColor, statusText) = when {
-                        statusLower.contains(stringResource(R.string.resolved)) -> Pair(Color(0xFF047857), stringResource(R.string.resolved))
-                        statusLower.contains(stringResource(R.string.in_progress)) -> Pair(Color(0xFFD97706), stringResource(R.string.in_progress))
-                        else -> Pair(Color(0xFFB91C1C), stringResource(R.string.pending))
+                    val normStatus = normalizeReportStatus(report.status)
+                    val statusText = getReportStatusDisplay(report.status, context)
+                    val statusColor = when (normStatus) {
+                        "Resolved" -> Color(0xFF047857)
+                        "In Progress" -> Color(0xFFD97706)
+                        else -> Color(0xFFB91C1C)
                     }
 
                     val dateStr = remember(report.timestamp) {
@@ -390,9 +394,7 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                                 onClick = {
                                     editingReport = report
                                     feedbackInput = report.adminFeedback
-                                    statusInput = if (report.status.equals(context.getString(R.string.resolved), ignoreCase = true)) context.getString(R.string.resolved)
-                                                  else if (report.status.equals(context.getString(R.string.pending), ignoreCase = true)) context.getString(R.string.pending)
-                                                  else context.getString(R.string.in_progress)
+                                    statusInput = normalizeReportStatus(report.status)
                                 },
                                 modifier = Modifier.fillMaxWidth().height(42.dp),
                                 shape = RoundedCornerShape(8.dp),
@@ -475,20 +477,25 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                             color = Color(0xFF334155)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
+                        val reportStatusOptions = listOf(
+                            StatusOption("Pending", stringResource(R.string.pending)),
+                            StatusOption("In Progress", stringResource(R.string.in_progress)),
+                            StatusOption("Resolved", stringResource(R.string.resolved))
+                        )
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            listOf(stringResource(R.string.pending), stringResource(R.string.in_progress), stringResource(R.string.resolved)).forEach { st ->
+                            reportStatusOptions.forEach { option ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth().clickable { statusInput = st }
+                                    modifier = Modifier.fillMaxWidth().clickable { statusInput = option.canonical }
                                 ) {
                                     RadioButton(
-                                        selected = statusInput.equals(st, ignoreCase = true),
-                                        onClick = { statusInput = st },
+                                        selected = statusInput.equals(option.canonical, ignoreCase = true),
+                                        onClick = { statusInput = option.canonical },
                                         colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0369A1))
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = st,
+                                        text = option.display,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF0F172A)
@@ -525,16 +532,5 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                 }
             }
         )
-    }
-}
-
-fun normalizeReportStatus(status: String?): String {
-    if (status.isNullOrBlank()) return "Pending"
-    val lower = status.trim().lowercase()
-    return when {
-        lower.contains("progress") || lower.contains("proses") || lower.contains("in_progress") -> "In Progress"
-        lower.contains("resolve") || lower.contains("selesai") || lower.contains("complete") -> "Resolved"
-        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
-        else -> "Pending"
     }
 }

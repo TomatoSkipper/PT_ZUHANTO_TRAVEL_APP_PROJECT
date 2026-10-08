@@ -1,8 +1,9 @@
 package com.example.appproject.ui.screens
 
 import android.util.Base64
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,15 +16,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,32 +42,70 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.appproject.R
 import com.example.appproject.data.model.VoucherStatus
 import com.example.appproject.data.model.parseBookingDate
 import com.example.appproject.data.repository.FirebaseRepository
 
+fun Modifier.dashedBorder(
+    strokeWidth: Dp,
+    color: Color,
+    cornerRadius: Dp
+) = this.drawWithContent {
+    drawContent()
+    val stroke = Stroke(
+        width = strokeWidth.toPx(),
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f)
+    )
+    drawRoundRect(
+        color = color,
+        style = stroke,
+        cornerRadius = CornerRadius(cornerRadius.toPx())
+    )
+}
+
 @Composable
 fun UserVouchersScreen(firebaseRepo: FirebaseRepository, username: String) {
     var vouchersWithStatus by remember { mutableStateOf<List<VoucherStatus>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var selectedCategory by remember { mutableStateOf("All") }
 
     LaunchedEffect(Unit) {
-        val allVouchers = firebaseRepo.getAllVouchers()
+        val fetchedVouchers = firebaseRepo.getAllVouchers()
         val currentTime = System.currentTimeMillis()
+
+        val allVouchers = if (fetchedVouchers.isNotEmpty()) fetchedVouchers else listOf(
+            mapOf(
+                "code" to "NEWCOMER",
+                "discountPercentage" to "10",
+                "description" to "Special for new account",
+                "startDate" to "01 Jan 2026",
+                "endDate" to "31 Oct 2026"
+            )
+        )
 
         vouchersWithStatus = allVouchers.map { vData ->
             val code = vData["code"]?.toString() ?: ""
             val endDateStr = vData["endDate"]?.toString() ?: ""
 
-            val isUsed = firebaseRepo.isVoucherUsedByUser(code, username)
+            val isUsed = if (code == "NEWCOMER" && username.isBlank()) false else firebaseRepo.isVoucherUsedByUser(code, username)
 
             var isExpired = false
             if (endDateStr.isNotBlank()) {
@@ -79,32 +122,30 @@ fun UserVouchersScreen(firebaseRepo: FirebaseRepository, username: String) {
         isLoading = false
     }
 
-    val filteredVouchers = remember(vouchersWithStatus, selectedCategory) {
-        if (selectedCategory == "All") vouchersWithStatus
-        else {
-            val filtered = vouchersWithStatus.filter { status ->
-                val desc = status.data["description"]?.toString() ?: ""
-                val code = status.data["code"]?.toString() ?: ""
-                desc.contains(selectedCategory, ignoreCase = true) || code.contains(selectedCategory, ignoreCase = true)
-            }
-            if (filtered.isEmpty()) vouchersWithStatus else filtered
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(20.dp)
     ) {
         SectionHeader(title = stringResource(R.string.available_promo_vouchers))
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = stringResource(R.string.apply_code_at_checkout_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-        } else if (filteredVouchers.isEmpty()) {
+        } else if (vouchersWithStatus.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -125,140 +166,347 @@ fun UserVouchersScreen(firebaseRepo: FirebaseRepository, username: String) {
                 }
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(filteredVouchers, key = { it.data["code"]?.toString() ?: "" }) { status ->
-                    val voucher = status.data
-                    val code = voucher["code"]?.toString() ?: "UNKNOWN"
-                    val discount = voucher["discountPercentage"]?.toString() ?: "0"
-                    val isUsed = status.isUsed
-                    val isExpired = status.isExpired
-                    val isDisabled = isUsed || isExpired
-                    val bgPic = voucher["backgroundPicture"]?.toString() ?: ""
-                    val bgBytes = remember(bgPic) {
-                        try {
-                            val clean = bgPic.replace("\n", "").replace("\r", "").trim()
-                            if (clean.isNotBlank()) Base64.decode(clean, Base64.DEFAULT) else null
-                        } catch (_: Exception) {
-                            null
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                items(vouchersWithStatus, key = { it.data["code"]?.toString() ?: "" }) { status ->
+                    VoucherCardItem(status = status)
+                }
+
+                item {
+                    HowToRedeemSection()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun VoucherCardItem(status: VoucherStatus) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+
+    val voucher = status.data
+    val code = voucher["code"]?.toString() ?: "UNKNOWN"
+    val discount = voucher["discountPercentage"]?.toString() ?: "0"
+    val desc = voucher["description"]?.toString() ?: ""
+    val isUsed = status.isUsed
+    val isExpired = status.isExpired
+    val isDisabled = isUsed || isExpired
+    val bgPic = voucher["backgroundPicture"]?.toString() ?: ""
+
+    val bgBytes = remember(bgPic) {
+        try {
+            val clean = bgPic.replace("\n", "").replace("\r", "").trim()
+            if (clean.isNotBlank()) Base64.decode(clean, Base64.DEFAULT) else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (isDisabled) 0.65f else 1f),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Top Banner
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(135.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF0F5A71),
+                                Color(0xFF0C4355),
+                                Color(0xFF082B38)
+                            )
+                        )
+                    )
+            ) {
+                if (bgBytes != null) {
+                    AsyncImage(
+                        model = bgBytes,
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                    )
+                }
+
+                // Top Right Badge
+                Surface(
+                    color = Color.White,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = when {
+                            isUsed -> stringResource(R.string.used)
+                            isExpired -> stringResource(R.string.expired)
+                            else -> "$discount% off"
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F5A71)
+                    )
+                }
+
+                // Bottom Left Title/Description
+                Text(
+                    text = if (desc.isNotBlank()) desc else "Special for new account",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                )
+            }
+
+            // Bottom Actions & Information Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Voucher Code Box
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFF4F7FC), RoundedCornerShape(8.dp))
+                            .dashedBorder(1.dp, Color(0xFF90CAF9), 8.dp)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.LocalOffer,
+                                contentDescription = null,
+                                tint = Color(0xFF0B57D0),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = code,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0B57D0),
+                                letterSpacing = 0.5.sp
+                            )
                         }
                     }
 
-                    ElevatedCard(
-                        modifier = Modifier.fillMaxWidth().alpha(if (isDisabled) 0.6f else 1f),
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-                        colors = CardDefaults.elevatedCardColors(
-                            containerColor = if (bgBytes != null) Color.Transparent else Color(0xFFFFB300)
-                        )
+                    // Copy Code Button
+                    Button(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(code))
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B57D0)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(if (bgBytes == null) Color(0xFFFFB300) else Color.Transparent)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            if (bgBytes != null) {
-                                AsyncImage(
-                                    model = bgBytes,
-                                    contentDescription = null,
-                                    modifier = Modifier.matchParentSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .matchParentSize()
-                                        .background(Color.Black.copy(alpha = 0.5f))
-                                )
-                            }
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp)
-                            ) {
-
-                                val desc = voucher["description"]?.toString() ?: ""
-                                Text(
-                                    text = if (desc.isNotBlank()) desc else "Get $discount% OFF with voucher $code",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (bgBytes != null) Color.White else Color(0xFF1F1F1F)
-                                )
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                val start = voucher["startDate"]?.toString() ?: ""
-                                val end = voucher["endDate"]?.toString() ?: ""
-                                val validText = if (end.isNotBlank()) "Valid till: $end" else if (start.isNotBlank()) "Valid from: $start" else "Valid anytime"
-                                Text(
-                                    text = validText,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (bgBytes != null) Color.LightGray else Color(0xFF424242)
-                                )
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Voucher code pill button
-                                    Surface(
-                                        color = Color.White,
-                                        shape = RoundedCornerShape(24.dp),
-                                        shadowElevation = 2.dp
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.LocalOffer,
-                                                contentDescription = null,
-                                                tint = Color(0xFF1F1F1F),
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Text(
-                                                text = code,
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = Color(0xFF1F1F1F)
-                                            )
-                                        }
-                                    }
-
-                                    // Discount / Status badge
-                                    Surface(
-                                        color = when {
-                                            isUsed -> Color.Gray.copy(alpha = 0.3f)
-                                            isExpired -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                                            else -> (if (bgBytes != null) Color.White else Color(0xFF1F1F1F)).copy(alpha = 0.15f)
-                                        },
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Text(
-                                            text = when {
-                                                isUsed -> stringResource(R.string.used)
-                                                isExpired -> stringResource(R.string.expired)
-                                                else -> "$discount% OFF"
-                                            },
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = when {
-                                                isUsed -> Color.DarkGray
-                                                isExpired -> MaterialTheme.colorScheme.error
-                                                else -> if (bgBytes != null) Color.White else Color(0xFF1F1F1F)
-                                            }
-                                        )
-                                    }
-                                }
-                            }
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.copy_code),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Validity & Status Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val start = voucher["startDate"]?.toString() ?: ""
+                    val end = voucher["endDate"]?.toString() ?: ""
+                    val validText = when {
+                        end.isNotBlank() -> stringResource(R.string.valid_until, end)
+                        start.isNotBlank() -> "Valid from $start"
+                        else -> "Valid until 31 Oct 2026"
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CalendarToday,
+                            contentDescription = null,
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = validText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF475569)
+                        )
+                    }
+
+                    // Status Badge
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(
+                                    color = when {
+                                        isUsed -> Color.Gray
+                                        isExpired -> Color.Red
+                                        else -> Color(0xFF10B981)
+                                    },
+                                    shape = CircleShape
+                                )
+                        )
+                        Text(
+                            text = when {
+                                isUsed -> stringResource(R.string.used)
+                                isExpired -> stringResource(R.string.expired)
+                                else -> stringResource(R.string.active)
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                isUsed -> Color.Gray
+                                isExpired -> Color.Red
+                                else -> Color(0xFF059669)
+                            }
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun HowToRedeemSection() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 1.dp
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = stringResource(R.string.how_to_redeem),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E293B)
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = Color(0xFFF1F5F9))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Step 1
+            RedeemStepItem(
+                stepNumber = "1",
+                title = stringResource(R.string.redeem_step_1_title),
+                description = stringResource(R.string.redeem_step_1_desc)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = Color(0xFFF1F5F9))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Step 2
+            RedeemStepItem(
+                stepNumber = "2",
+                title = stringResource(R.string.redeem_step_2_title),
+                description = stringResource(R.string.redeem_step_2_desc)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = Color(0xFFF1F5F9))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Step 3
+            RedeemStepItem(
+                stepNumber = "3",
+                title = stringResource(R.string.redeem_step_3_title),
+                description = stringResource(R.string.redeem_step_3_desc)
+            )
+        }
+    }
+}
+
+@Composable
+fun RedeemStepItem(
+    stepNumber: String,
+    title: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(Color(0xFFE0F2FE), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stepNumber,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0284C7)
+            )
+        }
+
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E293B)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF64748B)
+            )
         }
     }
 }

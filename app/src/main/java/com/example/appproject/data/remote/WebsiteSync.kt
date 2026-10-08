@@ -1275,6 +1275,12 @@ fun getSavedPromoTrips(context: Context): List<TripPromo> {
                     finalTiers = defaultTrip.pricingTiers
                 }
 
+                val isYogyakarta = tripNameLower.contains("yogyakarta") || tripNameLower.contains("jogja")
+                if (isYogyakarta && (finalPrice.contains("couple", ignoreCase = true) || finalPrice.contains("3.555.000"))) {
+                    finalPrice = defaultTrip.price
+                    finalTiers = defaultTrip.pricingTiers
+                }
+
                 defaultTrip.copy(
                     price = finalPrice,
                     pricingTiers = finalTiers,
@@ -1338,8 +1344,9 @@ suspend fun FetchPromoTripsFromWebsite(context: Context): List<TripPromo> = with
                             cleanTripName.contains("ijen crater") || cleanTripName.contains("kawah ijen") -> cleanUrlPath.contains("ijen crater") || cleanKey.contains("ijen_crater")
                             cleanTripName.contains("tumpak") -> cleanUrlPath.contains("tumpak")
                             cleanTripName.contains("dieng") -> cleanUrlPath.contains("dieng")
+                            cleanTripName.contains("yogyakarta") -> cleanUrlPath.contains("yogyakarta") || cleanKey.contains("yogyakarta-trip")
+                            cleanTripName.contains("jogja") && !cleanTripName.contains("dieng") -> cleanUrlPath.contains("yogyakarta") || cleanKey.contains("yogyakarta-trip")
                             cleanTripName.contains("rinjan") -> cleanUrlPath.contains("rinjani")
-                            cleanTripName.contains("yogyakarta") || cleanTripName.contains("jogja") -> cleanUrlPath.contains("yogyakarta") || cleanUrlPath.contains("jogja")
                             cleanTripName.contains("borobudur") || cleanTripName.contains("candi borobudur") -> cleanUrlPath.contains("borobudur") || cleanKey.contains("borobudur_temple")
                             cleanTripName.contains("bali") -> cleanUrlPath.contains("bali")
                             cleanTripName.contains("labuan") -> cleanUrlPath.contains("labuan")
@@ -1365,6 +1372,12 @@ suspend fun FetchPromoTripsFromWebsite(context: Context): List<TripPromo> = with
                         val isIjenCrater = cleanTripName.contains("ijen crater") || cleanTripName.contains("kawah ijen")
                         if (isIjenCrater && (finalPrice.contains("couple", ignoreCase = true) || finalPrice.contains("3.450.000"))) {
                             finalPrice = if (defaultTrip.price.isNotBlank()) defaultTrip.price else "IDR 1,850,000 / Person"
+                            finalTiers = defaultTrip.pricingTiers
+                        }
+
+                        val isYogyakarta = cleanTripName.contains("yogyakarta") || (cleanTripName.contains("jogja") && !cleanTripName.contains("dieng"))
+                        if (isYogyakarta && (finalPrice.contains("couple", ignoreCase = true) || finalPrice.contains("3.555.000"))) {
+                            finalPrice = if (defaultTrip.price.isNotBlank()) defaultTrip.price else "IDR 975,000 / Person"
                             finalTiers = defaultTrip.pricingTiers
                         }
 
