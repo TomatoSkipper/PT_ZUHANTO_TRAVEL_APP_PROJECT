@@ -165,7 +165,7 @@ fun PaymentScreen(
     val invalidVoucherMsg = stringResource(R.string.invalid_voucher)
 
     val publishableKey = "pk_test_51UNOmW984JcO38MUl2fQbGvBbgnCyLVaPdPhwlUTMSR1dXkjrZzV8Gl5VV96wZKTtv2UUaVOqFcy48zCvgpr3FpH00mrOstu0x"
-    val secretKey = ""
+    val secretKey = "sk_test_51UNOmW984JcO38MUvHE1OJuDLgCfMFl82KWJf5aInHErmm6RyVi8O2sii0UOsP9PxzGKWpS0RqH8uFmSHLzKyiX9006Dq3Xw2b"
 
     // Stripe PaymentSheet integration
     val paymentSheet = rememberPaymentSheet { result ->
@@ -461,38 +461,26 @@ fun PaymentScreen(
                                         config
                                     )
                                 } catch (e: Exception) {
+                                    isProcessingPayment = false
                                     Log.e(
                                         "PaymentScreen",
-                                        "Error launching PaymentSheet, falling back to direct payment",
+                                        "Error launching PaymentSheet",
                                         e
                                     )
-                                    processPaymentCompletion(
-                                        booking = booking,
-                                        firebaseRepo = firebaseRepo,
-                                        methodName = "Stripe Credit/Debit Card",
-                                        appliedVoucher = appliedVoucherCode,
-                                        discountVal = discountValue,
-                                        onSuccess = { updated ->
-                                            booking = updated
-                                            paymentSuccessDialog = true
-                                        }
-                                    )
+                                    Toast.makeText(
+                                        context,
+                                        "An error occurred while launching payment. Please try again.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             } else {
-                                Log.w("PaymentScreen", "Stripe client secret missing ($errorMsg), completing payment directly.")
-                                delay(1000)
                                 isProcessingPayment = false
-                                processPaymentCompletion(
-                                    booking = booking,
-                                    firebaseRepo = firebaseRepo,
-                                    methodName = "Credit/Debit Card",
-                                    appliedVoucher = appliedVoucherCode,
-                                    discountVal = discountValue,
-                                    onSuccess = { updated ->
-                                        booking = updated
-                                        paymentSuccessDialog = true
-                                    }
-                                )
+                                Log.e("PaymentScreen", "Stripe Error: ${errorMsg ?: "Failed to generate client secret"}")
+                                Toast.makeText(
+                                    context,
+                                    "Failed to initialize payment. Please try again later.",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
                     },
