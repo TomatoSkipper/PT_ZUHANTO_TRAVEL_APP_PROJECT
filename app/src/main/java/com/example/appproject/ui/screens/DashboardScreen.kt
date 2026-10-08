@@ -135,6 +135,12 @@ fun DashboardHomeScreen(
         user = firebaseRepo.getUser(username)
     }
 
+    val displayName = remember(user, username) {
+        user?.username?.ifBlank { user?.name }?.takeIf { it.isNotBlank() }
+            ?: username.takeIf { it.isNotBlank() && it.length < 20 }
+            ?: "Traveler"
+    }
+
     val scrollState = rememberScrollState()
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
@@ -216,7 +222,7 @@ fun DashboardHomeScreen(
                         }
 
                         Text(
-                            text = stringResource(R.string.welcome_user, username),
+                            text = stringResource(R.string.welcome_user, displayName),
                             style = if (columnCount > 1) MaterialTheme.typography.displayMedium else MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White

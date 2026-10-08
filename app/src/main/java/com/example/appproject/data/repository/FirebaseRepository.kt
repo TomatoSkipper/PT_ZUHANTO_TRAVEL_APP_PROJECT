@@ -148,31 +148,77 @@ class FirebaseRepository {
         }
     }
 
-    suspend fun getBookingsForUser(uid: String): List<Booking> {
-        if (uid.isBlank()) return emptyList()
+    suspend fun getBookingsForUser(query: String): List<Booking> {
+        if (query.isBlank()) return emptyList()
         return try {
-            val uidDocs = bookingsCollection?.whereEqualTo("customerUid", uid)?.get()?.await()?.toObjects(Booking::class.java) ?: emptyList()
-            uidDocs.sortedBy { it.bookingDate }
+            val bookings = mutableListOf<Booking>()
+            val seenIds = mutableSetOf<String>()
+
+            // 1. Query by customerUid == query
+            val uidDocs = bookingsCollection?.whereEqualTo("customerUid", query)?.get()?.await()?.toObjects(Booking::class.java)
+            if (uidDocs != null) {
+                for (b in uidDocs) {
+                    if (seenIds.add(b.bookingId)) bookings.add(b)
+                }
+            }
+
+            // 2. Query by customerUsername == query
+            val usernameDocs = bookingsCollection?.whereEqualTo("customerUsername", query)?.get()?.await()?.toObjects(Booking::class.java)
+            if (usernameDocs != null) {
+                for (b in usernameDocs) {
+                    if (seenIds.add(b.bookingId)) bookings.add(b)
+                }
+            }
+
+            // 3. If query is a UID, also check if user object exists and query by their username
+            val user = getUser(query)
+            if (user != null && user.username.isNotBlank()) {
+                val userUsernameDocs = bookingsCollection?.whereEqualTo("customerUsername", user.username)?.get()?.await()?.toObjects(Booking::class.java)
+                if (userUsernameDocs != null) {
+                    for (b in userUsernameDocs) {
+                        if (seenIds.add(b.bookingId)) bookings.add(b)
+                    }
+                }
+            }
+
+            bookings.sortedBy { it.bookingDate }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting bookings for user: ${e.message}")
             emptyList()
         }
     }
 
-    fun listenToBookingsForUser(uid: String, onUpdate: (List<Booking>) -> Unit): ListenerRegistration? {
-        if (uid.isBlank()) return null
+    fun listenToBookingsForUser(query: String, onUpdate: (List<Booking>) -> Unit): ListenerRegistration? {
+        if (query.isBlank()) return null
         return try {
             bookingsCollection
-                ?.whereEqualTo("customerUid", uid)
-                ?.addSnapshotListener { snapshot, error ->
+                ?.whereEqualTo("customerUid", query)
+                ?.addSnapshotListener { snapshotUid, error ->
                     if (error != null) {
                         Log.e(TAG, "Listen failed: ${error.message}")
                         return@addSnapshotListener
                     }
-                    if (snapshot != null) {
-                        val bookings = snapshot.toObjects(Booking::class.java)
-                        onUpdate(bookings)
+                    val bookings = mutableListOf<Booking>()
+                    val seenIds = mutableSetOf<String>()
+                    if (snapshotUid != null) {
+                        bookings.addAll(snapshotUid.toObjects(Booking::class.java))
+                        seenIds.addAll(bookings.map { it.bookingId })
                     }
+
+                    bookingsCollection
+                        ?.whereEqualTo("customerUsername", query)
+                        ?.get()
+                        ?.addOnSuccessListener { snapshotUsername ->
+                            if (snapshotUsername != null) {
+                                for (doc in snapshotUsername.documents) {
+                                    val b = doc.toObject(Booking::class.java)
+                                    if (b != null && seenIds.add(b.bookingId)) {
+                                        bookings.add(b)
+                                    }
+                                }
+                            }
+                            onUpdate(bookings.sortedBy { it.bookingDate })
+                        }
                 }
         } catch (e: Exception) {
             Log.e(TAG, "Error listening to bookings for user: ${e.message}")

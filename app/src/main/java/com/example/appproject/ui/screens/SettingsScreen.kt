@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.firebase.auth.FirebaseAuth
+import com.example.appproject.data.model.User
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -115,20 +116,21 @@ fun SettingsScreen(
     val firebaseRepo = remember { FirebaseRepository() }
     val preferences = remember { context.getSharedPreferences("user_session", Context.MODE_PRIVATE) }
 
-    val currentUsername = remember {
-        preferences.getString("signed_in_username", null)
-            .takeIf { !it.isNullOrBlank() }
-            ?: preferences.getString("logged_in_user", null)
-                .takeIf { !it.isNullOrBlank() }
-            ?: "Guest"
+    val currentUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
+    var userProfile by remember { mutableStateOf<User?>(null) }
+
+    LaunchedEffect(currentUid) {
+        if (currentUid.isNotBlank()) {
+            userProfile = firebaseRepo.getUser(currentUid)
+        }
     }
 
-    val currentUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
-    val isGuest = currentUid.isBlank()
-    val isAdmin = remember {
-        // Admin status can be checked via auth token or fallback
-        false
+    val currentUsername = remember(userProfile) {
+        userProfile?.username?.ifBlank { userProfile?.name }?.takeIf { it.isNotBlank() } ?: "Traveler"
     }
+
+    val isGuest = currentUid.isBlank()
+    val isAdmin = remember { false }
 
     var selectedTabIndex by remember { mutableStateOf(0) }
 

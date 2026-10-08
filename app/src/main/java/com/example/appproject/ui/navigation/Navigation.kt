@@ -149,7 +149,26 @@ fun AppNavigationDrawer() {
     var showSplash by remember { mutableStateOf(true) }
 
     var loggedInUser by rememberSaveable { mutableStateOf<String?>(null) }
+    var displayUsername by rememberSaveable { mutableStateOf<String?>("Traveler") }
     var isAdminLoggedIn by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(loggedInUser, isAdminLoggedIn) {
+        val uid = loggedInUser
+        if (!uid.isNullOrBlank()) {
+            if (isAdminLoggedIn) {
+                displayUsername = "Admin"
+            } else {
+                val user = firebaseRepo.getUser(uid)
+                if (user != null) {
+                    displayUsername = user.username.ifBlank { user.name.ifBlank { "Traveler" } }
+                } else {
+                    displayUsername = "Traveler"
+                }
+            }
+        } else {
+            displayUsername = null
+        }
+    }
 
     LaunchedEffect(Unit) {
         val firebaseUser = FirebaseAuth.getInstance().currentUser
@@ -312,7 +331,7 @@ fun AppNavigationDrawer() {
                             }
                             Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = if (loggedInUser != null) "Hello, $loggedInUser" else stringResource(R.string.company_name_zuhanto),
+                                text = if (loggedInUser != null) "Hello, ${displayUsername ?: "Traveler"}" else stringResource(R.string.company_name_zuhanto),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -685,7 +704,7 @@ fun AppNavigationDrawer() {
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Text(
-                                                text = loggedInUser?.take(1)?.uppercase() ?: "U",
+                                                text = (displayUsername ?: "U").take(1).uppercase(),
                                                 fontWeight = FontWeight.Bold,
                                                 color = PrimaryBlue,
                                                 fontSize = 14.sp
