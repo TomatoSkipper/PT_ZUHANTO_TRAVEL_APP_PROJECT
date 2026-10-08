@@ -273,15 +273,11 @@ class FirebaseRepository {
 
     suspend fun getAllUsers(): List<User> {
         return try {
-            usersCollection?.orderBy("username")?.get()?.await()?.toObjects(User::class.java) ?: emptyList()
+            val list = usersCollection?.get()?.await()?.toObjects(User::class.java) ?: emptyList()
+            list.sortedBy { it.username }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting all users with order: ${e.message}")
-            try {
-                usersCollection?.get()?.await()?.toObjects(User::class.java) ?: emptyList()
-            } catch (e2: Exception) {
-                Log.e(TAG, "Error getting all users fallback: ${e2.message}")
-                emptyList()
-            }
+            Log.e(TAG, "Error getting all users: ${e.message}")
+            emptyList()
         }
     }
 

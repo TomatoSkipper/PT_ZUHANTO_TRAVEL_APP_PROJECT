@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.firebase.auth.FirebaseAuth
 import com.example.appproject.data.model.User
+import kotlinx.coroutines.tasks.await
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -118,19 +119,29 @@ fun SettingsScreen(
 
     val currentUid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
     var userProfile by remember { mutableStateOf<User?>(null) }
+    var isAdmin by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUid) {
         if (currentUid.isNotBlank()) {
             userProfile = firebaseRepo.getUser(currentUid)
+            val firebaseUser = FirebaseAuth.getInstance().currentUser
+            if (firebaseUser != null) {
+                try {
+                    val tokenResult = firebaseUser.getIdToken(false).await()
+                    isAdmin = tokenResult?.claims?.get("admin") == true || tokenResult?.claims?.get("admin")?.toString() == "true"
+                } catch (_: Exception) {
+                    isAdmin = false
+                }
+            }
         }
     }
 
-    val currentUsername = remember(userProfile) {
-        userProfile?.username?.ifBlank { userProfile?.name }?.takeIf { it.isNotBlank() } ?: "Traveler"
+    val currentUsername = remember(userProfile, isAdmin) {
+        if (isAdmin) "Admin"
+        else userProfile?.username?.ifBlank { userProfile?.name }?.takeIf { it.isNotBlank() } ?: "Traveler"
     }
 
     val isGuest = currentUid.isBlank()
-    val isAdmin = remember { false }
 
     var selectedTabIndex by remember { mutableStateOf(0) }
 

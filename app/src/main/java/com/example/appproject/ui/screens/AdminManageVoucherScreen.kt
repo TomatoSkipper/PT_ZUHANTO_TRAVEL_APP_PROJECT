@@ -2,13 +2,14 @@ package com.example.appproject.ui.screens
 
 import android.app.DatePickerDialog
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,23 +23,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,20 +54,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.example.appproject.R
 import com.example.appproject.data.model.parseBookingDate
 import com.example.appproject.data.repository.FirebaseRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -81,7 +78,6 @@ fun AdminVouchersScreen(firebaseRepo: FirebaseRepository) {
     var endDateStr by remember { mutableStateOf("") }
     var voucherBgImageUri by remember { mutableStateOf<Uri?>(null) }
     var voucherBgImageBase64 by remember { mutableStateOf("") }
-    var voucherSavedStatus by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     val voucherBgPickerLauncher = rememberLauncherForActivityResult(
@@ -92,10 +88,33 @@ fun AdminVouchersScreen(firebaseRepo: FirebaseRepository) {
             scope.launch {
                 voucherBgImageBase64 = compressAndEncodeImage(context, uri)
                 if (voucherBgImageBase64.isBlank()) {
-                    Toast.makeText(context, "Failed to process image", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, (R.string.failed_to_process_image), Toast.LENGTH_SHORT).show()
                 }
             }
         }
+    }
+
+    fun showDatePicker(currentDateStr: String = "", onDateSelected: (String) -> Unit) {
+        val cal = Calendar.getInstance()
+        if (currentDateStr.isNotBlank()) {
+            try {
+                val parsed = SimpleDateFormat("dd-MM-yyyy", Locale.US).parse(currentDateStr.trim())
+                if (parsed != null) cal.time = parsed
+            } catch (_: Exception) {}
+        }
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selectedSdf = SimpleDateFormat("dd-MM-yyyy", Locale.US)
+                val selectedCal = Calendar.getInstance().apply {
+                    set(year, month, dayOfMonth)
+                }
+                onDateSelected(selectedSdf.format(selectedCal.time))
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
     LaunchedEffect(Unit) {
@@ -104,7 +123,9 @@ fun AdminVouchersScreen(firebaseRepo: FirebaseRepository) {
         isLoading = false
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC)
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -112,329 +133,356 @@ fun AdminVouchersScreen(firebaseRepo: FirebaseRepository) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header Section
             item {
-                SectionHeader(
-                    title = context.getString(R.string.manage_vouchers),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        text = stringResource(R.string.voucher),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.create_promo_codes_and_manage_live_offers),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF64748B)
+                    )
+                }
             }
 
+            // Create Voucher Card
             item {
-                ElevatedCard(
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.elevatedCardElevation(2.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = stringResource(R.string.create_promo_voucher),
+                            text = stringResource(R.string.create_voucher),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color(0xFF0F172A)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
+                        // Code & Discount (%) Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            OutlinedTextField(
-                                value = inputVoucherCode,
-                                onValueChange = { inputVoucherCode = it },
-                                placeholder = { Text(stringResource(R.string.code_upper)) },
-                                modifier = Modifier.weight(1.5f),
-                                singleLine = true,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            OutlinedTextField(
-                                value = customPercentage,
-                                onValueChange = { customPercentage = it.filter { c -> c.isDigit() } },
-                                placeholder = { Text(stringResource(R.string.percent_sign)) },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                shape = RoundedCornerShape(8.dp)
-                            )
+                            Column(modifier = Modifier.weight(1.5f)) {
+                                Text(stringResource(R.string.code), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                OutlinedTextField(
+                                    value = inputVoucherCode,
+                                    onValueChange = { inputVoucherCode = it.uppercase() },
+                                    placeholder = { Text("NEWCOMER", color = Color(0xFFCBD5E1)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = Color(0xFFCBD5E1),
+                                        focusedBorderColor = Color(0xFF0284C7)
+                                    )
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.discount) + " (%)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                OutlinedTextField(
+                                    value = customPercentage,
+                                    onValueChange = { customPercentage = it },
+                                    placeholder = { Text("15", color = Color(0xFFCBD5E1)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = Color(0xFFCBD5E1),
+                                        focusedBorderColor = Color(0xFF0284C7)
+                                    )
+                                )
+                            }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Description
+                        Text(stringResource(R.string.description), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                        Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
                             value = voucherDescription,
                             onValueChange = { voucherDescription = it },
-                            placeholder = { Text(stringResource(R.string.voucher_details_placeholder)) },
+                            placeholder = { Text("Short description", color = Color(0xFFCBD5E1)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedBorderColor = Color(0xFF0284C7)
+                            )
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Start date & End date Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            val ctx = LocalContext.current
-                            OutlinedButton(
-                                onClick = {
-                                    val calendar = Calendar.getInstance()
-                                    DatePickerDialog(
-                                        ctx,
-                                        { _, year, month, day ->
-                                            val selectedCalendar = Calendar.getInstance().apply {
-                                                set(year, month, day)
-                                            }
-                                            startDateStr = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(selectedCalendar.time)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.start_date), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = startDateStr,
+                                        onValueChange = {},
+                                        placeholder = { Text("DD-MM-YYYY", color = Color(0xFFCBD5E1)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        readOnly = true,
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(8.dp),
+                                        trailingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.DateRange,
+                                                contentDescription = "Select start date",
+                                                tint = Color(0xFF64748B)
+                                            )
                                         },
-                                        calendar.get(Calendar.YEAR),
-                                        calendar.get(Calendar.MONTH),
-                                        calendar.get(Calendar.DAY_OF_MONTH)
-                                    ).apply {
-                                        datePicker.minDate = System.currentTimeMillis() - 1000
-                                    }.show()
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = if (startDateStr.isBlank()) stringResource(R.string.start_date) else startDateStr,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                            OutlinedButton(
-                                onClick = {
-                                    val calendar = Calendar.getInstance()
-                                    val datePickerDialog = DatePickerDialog(
-                                        ctx,
-                                        { _, year, month, day ->
-                                            val selectedCalendar = Calendar.getInstance().apply {
-                                                set(year, month, day)
-                                            }
-                                            endDateStr = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(selectedCalendar.time)
-                                        },
-                                        calendar.get(Calendar.YEAR),
-                                        calendar.get(Calendar.MONTH),
-                                        calendar.get(Calendar.DAY_OF_MONTH)
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                                            focusedBorderColor = Color(0xFF0284C7)
+                                        )
                                     )
-
-                                    val minDate = if (startDateStr.isNotBlank()) {
-                                        try {
-                                            parseBookingDate(startDateStr)?.time ?: System.currentTimeMillis()
-                                        } catch (_: Exception) {
-                                            System.currentTimeMillis()
-                                        }
-                                    } else {
-                                        System.currentTimeMillis()
-                                    }
-
-                                    datePickerDialog.datePicker.minDate = minDate - 1000
-                                    datePickerDialog.show()
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = if (endDateStr.isBlank()) stringResource(R.string.end_date) else endDateStr,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedButton(
-                                onClick = { voucherBgPickerLauncher.launch("image/*") },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = if (voucherBgImageUri == null) "Select Background Picture" else "Change Background",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                            if (voucherBgImageUri != null) {
-                                OutlinedButton(
-                                    onClick = {
-                                        voucherBgImageUri = null
-                                        voucherBgImageBase64 = ""
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                                ) {
-                                    Text("Remove", style = MaterialTheme.typography.bodySmall)
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clickable { showDatePicker(startDateStr) { startDateStr = it } }
+                                    )
                                 }
                             }
-                        }
-
-                        if (voucherBgImageUri != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(100.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                            ) {
-                                AsyncImage(
-                                    model = voucherBgImageUri,
-                                    contentDescription = "Background Preview",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.end_date), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = endDateStr,
+                                        onValueChange = {},
+                                        placeholder = { Text("DD-MM-YYYY", color = Color(0xFFCBD5E1)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        readOnly = true,
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(8.dp),
+                                        trailingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.DateRange,
+                                                contentDescription = "Select end date",
+                                                tint = Color(0xFF64748B)
+                                            )
+                                        },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                                            focusedBorderColor = Color(0xFF0284C7)
+                                        )
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clickable { showDatePicker(endDateStr) { endDateStr = it } }
+                                    )
+                                }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = {
-                                if (inputVoucherCode.isNotBlank()) {
-                                    scope.launch {
-                                        val pct = customPercentage.toIntOrNull() ?: 10
-                                        firebaseRepo.saveVoucher(
-                                            code = inputVoucherCode,
-                                            discountPercentage = pct,
-                                            description = voucherDescription,
-                                            startDate = startDateStr,
-                                            endDate = endDateStr,
-                                            backgroundPicture = voucherBgImageBase64
-                                        )
-                                        adminVouchers = firebaseRepo.getAllVouchers()
-                                        voucherSavedStatus = "${context.getString(R.string.voucher)} '${inputVoucherCode.trim().uppercase()}' ${context.getString(R.string.successfully_created)}!"
-                                        inputVoucherCode = ""
-                                        customPercentage = ""
-                                        voucherDescription = ""
-                                        startDateStr = ""
-                                        endDateStr = ""
-                                        voucherBgImageUri = null
-                                        voucherBgImageBase64 = ""
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
+
+                        // Background image
+                        Text(stringResource(R.string.background_image), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedButton(
+                            onClick = { voucherBgPickerLauncher.launch("image/*") },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                         ) {
-                            Text(stringResource(R.string.create))
+                            Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF0284C7))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (voucherBgImageUri != null) stringResource(R.string.image_selected) else stringResource(R.string.choose_file),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0284C7)
+                            )
                         }
 
-                        if (voucherSavedStatus.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = voucherSavedStatus,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF4CAF50)
-                            )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Create Voucher Button
+                        Button(
+                            onClick = {
+                                val code = inputVoucherCode.trim().uppercase()
+                                val pct = customPercentage.toIntOrNull() ?: 0
+                                if (code.isBlank() || pct <= 0) {
+                                    Toast.makeText(context, (R.string.invalid_voucher_input), Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                scope.launch {
+                                    firebaseRepo.saveVoucher(
+                                        code = code,
+                                        discountPercentage = pct,
+                                        description = voucherDescription,
+                                        startDate = startDateStr,
+                                        endDate = endDateStr,
+                                        backgroundPicture = voucherBgImageBase64
+                                    )
+                                    inputVoucherCode = ""
+                                    customPercentage = ""
+                                    voucherDescription = ""
+                                    startDateStr = ""
+                                    endDateStr = ""
+                                    voucherBgImageUri = null
+                                    voucherBgImageBase64 = ""
+                                    adminVouchers = firebaseRepo.getAllVouchers()
+                                    Toast.makeText(context, (R.string.voucher_created_successfully), Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0369A1))
+                        ) {
+                            Text(stringResource(R.string.create_voucher), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
             }
 
+            // Existing Vouchers Card
             item {
-                ElevatedCard(
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.elevatedCardElevation(2.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column {
                         Text(
-                            text = stringResource(R.string.manage_existing_vouchers),
+                            text = stringResource(R.string.existing_vouchers),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier.padding(16.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
 
                         if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                            Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                                Text(stringResource(R.string.loading_vouchers), color = Color(0xFF64748B))
+                            }
                         } else if (adminVouchers.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.no_voucher_created),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                                Text(stringResource(R.string.no_existing_vouchers), color = Color(0xFF64748B))
+                            }
                         } else {
                             adminVouchers.forEachIndexed { index, voucher ->
-                                val code = voucher["code"]?.toString() ?: ""
-                                val discount = voucher["discountPercentage"]?.toString() ?: "0"
-                                val desc = voucher["description"]?.toString() ?: ""
-                                val start = voucher["startDate"]?.toString() ?: ""
-                                val end = voucher["endDate"]?.toString() ?: ""
-                                val bgPic = voucher["backgroundPicture"]?.toString() ?: ""
-                                val bgBytes = remember(bgPic) {
+                                val code = voucher[stringResource(R.string.code)]?.toString() ?: ""
+                                val discount = voucher[stringResource(R.string.discount_percentage)]?.toString() ?: "0"
+                                val desc = voucher[stringResource(R.string.description)]?.toString() ?: ""
+                                val start = voucher[stringResource(R.string.start_date)]?.toString() ?: ""
+                                val end = voucher[stringResource(R.string.end_date)]?.toString() ?: ""
+
+                                val currentTime = System.currentTimeMillis()
+                                var isEnded = false
+                                if (end.isNotBlank()) {
                                     try {
-                                        val clean = bgPic.replace("\n", "").replace("\r", "").trim()
-                                        if (clean.isNotBlank()) Base64.decode(clean, Base64.DEFAULT) else null
-                                    } catch (_: Exception) {
-                                        null
-                                    }
+                                        val endDate = parseBookingDate(end.trim())?.time ?: 0L
+                                        if (currentTime > endDate + 86400000) {
+                                            isEnded = true
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+
+                                if (index > 0) {
+                                    HorizontalDivider(color = Color(0xFFF1F5F9))
                                 }
 
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
+                                        .padding(16.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.Top
                                 ) {
-                                    if (bgBytes != null) {
-                                        AsyncImage(
-                                            model = bgBytes,
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .size(50.dp)
-                                                .clip(RoundedCornerShape(8.dp)),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                    }
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = code,
+                                            style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.titleSmall
-                                        )
-                                        Text(
-                                            text = "${stringResource(R.string.discount)}: $discount%",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = Color(0xFF0F172A)
                                         )
                                         if (desc.isNotBlank()) {
-                                            Text(
-                                                text = desc,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(desc, style = MaterialTheme.typography.bodySmall, color = Color(0xFF64748B))
                                         }
-                                        if (start.isNotBlank() || end.isNotBlank()) {
-                                            Text(
-                                                text = "Valid: ${start.ifBlank { "Any" }} - ${end.ifBlank { "Any" }}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.outline
-                                            )
+                                        val dateText = when {
+                                            start.isNotBlank() && end.isNotBlank() -> "$start to $end"
+                                            end.isNotBlank() -> stringResource(R.string.valid_till) + " $end"
+                                            start.isNotBlank() -> stringResource(R.string.valid_from) + " $start"
+                                            else -> ""
+                                        }
+                                        if (dateText.isNotBlank()) {
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(dateText, style = MaterialTheme.typography.bodySmall, color = Color(0xFF64748B))
                                         }
                                     }
-                                    IconButton(
-                                        onClick = {
-                                            scope.launch {
-                                                firebaseRepo.deleteVoucher(code)
-                                                adminVouchers = firebaseRepo.getAllVouchers()
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text(
+                                                text = "$discount%",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0369A1)
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(6.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (isEnded) Color(0xFF64748B) else Color(0xFF047857))
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = if (isEnded) stringResource(R.string.expired) else stringResource(R.string.active),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isEnded) Color(0xFF64748B) else Color(0xFF047857)
+                                                )
                                             }
                                         }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    }
-                                }
 
-                                if (index < adminVouchers.size - 1) {
-                                    HorizontalDivider()
+                                        IconButton(
+                                            onClick = {
+                                                scope.launch {
+                                                    firebaseRepo.deleteVoucher(code)
+                                                    adminVouchers = firebaseRepo.getAllVouchers()
+                                                    Toast.makeText(context, (R.string.voucher_deleted), Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete voucher",
+                                                tint = Color(0xFFE11D48),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -446,36 +494,27 @@ fun AdminVouchersScreen(firebaseRepo: FirebaseRepository) {
 }
 
 private suspend fun compressAndEncodeImage(context: Context, uri: Uri): String {
-    return withContext(Dispatchers.IO) {
+    return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return@withContext ""
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
+            val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
             inputStream.close()
             if (originalBitmap == null) return@withContext ""
 
             val maxDimension = 800
             val width = originalBitmap.width
             val height = originalBitmap.height
-            val scaledBitmap = if (width > maxDimension || height > maxDimension) {
-                val ratio = width.toFloat() / height.toFloat()
-                val targetW: Int
-                val targetH: Int
-                if (ratio > 1) {
-                    targetW = maxDimension
-                    targetH = (maxDimension / ratio).toInt()
-                } else {
-                    targetW = (maxDimension * ratio).toInt()
-                    targetH = maxDimension
-                }
-                Bitmap.createScaledBitmap(originalBitmap, targetW, targetH, true)
+            val (targetW, targetH) = if (width > height) {
+                if (width > maxDimension) maxDimension to (height * maxDimension / width) else width to height
             } else {
-                originalBitmap
+                if (height > maxDimension) (width * maxDimension / height) to maxDimension else width to height
             }
 
-            val outputStream = ByteArrayOutputStream()
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
-            val byteArray = outputStream.toByteArray()
-            Base64.encodeToString(byteArray, Base64.NO_WRAP).replace("\n", "").replace("\r", "").trim()
+            val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, targetW, targetH, true)
+            val outputStream = java.io.ByteArrayOutputStream()
+            scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+            val bytes = outputStream.toByteArray()
+            Base64.encodeToString(bytes, Base64.DEFAULT)
         } catch (_: Exception) {
             ""
         }

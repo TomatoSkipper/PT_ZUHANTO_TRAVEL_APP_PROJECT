@@ -7,7 +7,7 @@ initializeApp({
 });
 
 // Admin's UID from Firebase Console
-const adminUid = "ODLmPWGp3QTjpzunfKJHmbZDosd2";
+const adminUid = "0TGdUZiaJnc92nOGPsRdQMqubWV2";
 
 getAuth().setCustomUserClaims(adminUid, { admin: true })
   .then(() => {

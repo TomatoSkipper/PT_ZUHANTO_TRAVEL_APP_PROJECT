@@ -1,9 +1,9 @@
 package com.example.appproject.ui.screens
 
-import android.util.Base64
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,60 +13,55 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowWidthSizeClass
-import coil.compose.AsyncImage
 import com.example.appproject.R
 import com.example.appproject.data.model.ProblemReport
 import com.example.appproject.data.repository.FirebaseRepository
@@ -81,19 +76,11 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
     var reports by remember { mutableStateOf<List<ProblemReport>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
-    var activeFilter by remember { mutableStateOf("All") }
+    var activeFilter by rememberSaveable { mutableStateOf("All") }
     var editingReport by remember { mutableStateOf<ProblemReport?>(null) }
     var feedbackInput by remember { mutableStateOf("") }
-    var statusInput by remember { mutableStateOf("In Progress") }
-    var selectedPhotoForZoom by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var statusInput: String by remember { mutableStateOf("In Progress") }
     val scope = rememberCoroutineScope()
-
-    val adaptiveInfo = currentWindowAdaptiveInfo()
-    val columnCount = when (adaptiveInfo.windowSizeClass.windowWidthSizeClass) {
-        WindowWidthSizeClass.COMPACT -> 1
-        WindowWidthSizeClass.MEDIUM -> 2
-        else -> 3
-    }
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -101,9 +88,16 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
         isLoading = false
     }
 
-    val pendingCount = reports.count { it.status.equals("Pending", ignoreCase = true) }
-    val inProgressCount = reports.count { it.status.equals("In Progress", ignoreCase = true) }
-    val resolvedCount = reports.count { it.status.equals("Resolved", ignoreCase = true) }
+    val tabs = listOf(
+        Pair("All", stringResource(R.string.all)),
+        Pair("Pending", stringResource(R.string.pending)),
+        Pair("In Progress", stringResource(R.string.in_progress)),
+        Pair("Resolved", stringResource(R.string.resolved))
+    )
+
+    val pendingCount = reports.count { normalizeReportStatus(it.status) == "Pending" }
+    val inProgressCount = reports.count { normalizeReportStatus(it.status) == "In Progress" }
+    val resolvedCount = reports.count { normalizeReportStatus(it.status) == "Resolved" }
 
     val filteredReports = reports.filter { report ->
         val q = searchQuery.trim()
@@ -113,179 +107,237 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                 report.description.contains(q, ignoreCase = true)
 
         val matchesFilter = when (activeFilter) {
-            "Pending" -> report.status.equals("Pending", ignoreCase = true)
-            "In Progress" -> report.status.equals("In Progress", ignoreCase = true)
-            "Resolved" -> report.status.equals("Resolved", ignoreCase = true)
-            else -> true
+            "All" -> true
+            else -> normalizeReportStatus(report.status) == activeFilter
         }
 
         matchesQuery && matchesFilter
     }
 
-    Scaffold { innerPadding ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columnCount),
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC)
+    ) { innerPadding ->
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            // Header Section
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Header Title
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = stringResource(R.string.user_problem_reports),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = stringResource(R.string.user_problem_reports_subtext),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    isLoading = true
-                                    reports = firebaseRepo.getAllProblemReports()
-                                    isLoading = false
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh reports")
-                        }
-                    }
-
-                    // Stat KPI Dashboard Cards
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        AdminStatCard(
-                            title = stringResource(R.string.pending),
-                            value = "$pendingCount",
-                            icon = Icons.Default.ReportProblem,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f),
-                            onClick = { activeFilter = context.getString(R.string.pending) }
+                    Column {
+                        Text(
+                            text = stringResource(R.string.user_reports),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
                         )
-                        AdminStatCard(
-                            title = stringResource(R.string.in_progress),
-                            value = "$inProgressCount",
-                            icon = Icons.Default.Refresh,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.weight(1f),
-                            onClick = { activeFilter = context.getString(R.string.in_progress) }
-                        )
-                        AdminStatCard(
-                            title = stringResource(R.string.resolved),
-                            value = "$resolvedCount",
-                            icon = Icons.Default.CheckCircle,
-                            color = Color(0xFF4CAF50),
-                            modifier = Modifier.weight(1f),
-                            onClick = { activeFilter = context.getString(R.string.resolved) }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = stringResource(R.string.review_issues),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF64748B)
                         )
                     }
-
-                    // Search & Filter Bar
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(stringResource(R.string.search_by_user_problem)) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear search")
-                                }
+                    OutlinedCard(
+                        onClick = {
+                            scope.launch {
+                                isLoading = true
+                                reports = firebaseRepo.getAllProblemReports()
+                                isLoading = false
                             }
                         },
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true
-                    )
-
-                    // Filter Chips
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.size(44.dp),
+                        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                     ) {
-                        val filters = listOf(context.getString(R.string.all), context.getString(R.string.pending), context.getString(R.string.in_progress), context.getString(R.string.resolved))
-                        filters.forEach { opt ->
-                            FilterChip(
-                                selected = activeFilter == opt,
-                                onClick = { activeFilter = opt },
-                                label = { Text(opt) },
-                                shape = RoundedCornerShape(12.dp)
-                            )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color(0xFF334155))
                         }
                     }
                 }
             }
 
+            // Stat Summary KPI Card
+            item {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(stringResource(R.string.pending), style = MaterialTheme.typography.labelMedium, color = Color(0xFF64748B))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("$pendingCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFFB91C1C))
+                        }
+                        Box(modifier = Modifier.width(1.dp).height(36.dp).background(Color(0xFFE2E8F0)))
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(stringResource(R.string.in_progress), style = MaterialTheme.typography.labelMedium, color = Color(0xFF64748B))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("$inProgressCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                        }
+                        Box(modifier = Modifier.width(1.dp).height(36.dp).background(Color(0xFFE2E8F0)))
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(stringResource(R.string.resolved), style = MaterialTheme.typography.labelMedium, color = Color(0xFF64748B))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("$resolvedCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                        }
+                    }
+                }
+            }
+
+            // Tabs Row
+            item {
+                val selectedTabIndex = tabs.indexOfFirst { it.first == activeFilter }.coerceAtLeast(0)
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = Color.Transparent,
+                    contentColor = Color(0xFF0284C7),
+                    indicator = { tabPositions ->
+                        if (selectedTabIndex < tabPositions.size) {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                color = Color(0xFF0284C7),
+                                height = 2.dp
+                            )
+                        }
+                    },
+                    divider = {}
+                ) {
+                    tabs.forEach { (canonicalKey, tabName) ->
+                        val isSelected = activeFilter == canonicalKey
+                        Tab(
+                            selected = isSelected,
+                            onClick = { activeFilter = canonicalKey },
+                            text = {
+                                Text(
+                                    text = tabName,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color(0xFF0284C7) else Color(0xFF64748B)
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Search Bar
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.search_by_user_title_or_description), color = Color(0xFF94A3B8)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF64748B)) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear search", tint = Color(0xFF64748B))
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = Color.White,
+                        unfocusedBorderColor = Color(0xFFE2E8F0),
+                        focusedBorderColor = Color(0xFF0284C7)
+                    )
+                )
+            }
+
+            // Reports List
             if (isLoading) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
+                item {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.loading_user_problem))
+                        Text(stringResource(R.string.loading_problem_reports), color = Color(0xFF64748B))
                     }
                 }
             } else if (filteredReports.isEmpty()) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
+                item {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.no_user_problem), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.no_reports_found), color = Color(0xFF64748B))
                     }
                 }
             } else {
                 items(filteredReports, key = { it.reportId }) { report ->
-                    ElevatedCard(
+                    val fullTitle = report.title
+                    val category = if (fullTitle.startsWith("[") && fullTitle.contains("]")) {
+                        fullTitle.substringAfter("[").substringBefore("]")
+                    } else stringResource(R.string.general)
+                    val displayTitle = if (fullTitle.startsWith("[") && fullTitle.contains("]")) {
+                        fullTitle.substringAfter("]").trim()
+                    } else fullTitle
+
+                    val statusLower = report.status.trim().lowercase()
+                    val (statusColor, statusText) = when {
+                        statusLower.contains(stringResource(R.string.resolved)) -> Pair(Color(0xFF047857), stringResource(R.string.resolved))
+                        statusLower.contains(stringResource(R.string.in_progress)) -> Pair(Color(0xFFD97706), stringResource(R.string.in_progress))
+                        else -> Pair(Color(0xFFB91C1C), stringResource(R.string.pending))
+                    }
+
+                    val dateStr = remember(report.timestamp) {
+                        if (report.timestamp > 0) {
+                            val sdf = SimpleDateFormat("MMM d, yyyy, hh:mm a", Locale.US)
+                            sdf.format(Date(report.timestamp))
+                        } else (R.string.recent)
+                    }
+
+                    OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.elevatedCardElevation(3.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
+                            // Category & Status
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = report.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
+                                    text = category,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Color(0xFF475569),
+                                    fontWeight = FontWeight.Medium
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                val resolvedStr = context.getString(R.string.resolved).lowercase()
-                                val inProgressStr = context.getString(R.string.in_progress).lowercase()
-                                val statusLower = report.status.trim().lowercase()
-                                val (statusColor, containerColor) = when {
-                                    statusLower == resolvedStr || statusLower == "resolved" ->
-                                        Pair(Color(0xFF4CAF50), Color(0xFF4CAF50).copy(alpha = 0.2f))
-                                    statusLower == inProgressStr || statusLower == "in progress" ->
-                                        Pair(Color(0xFFFF9800), Color(0xFFFF9800).copy(alpha = 0.2f))
-                                    else ->
-                                        Pair(Color(0xFFE53935), Color(0xFFE53935).copy(alpha = 0.2f))
-                                }
-                                Surface(
-                                    color = containerColor,
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(statusColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = report.status,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall,
+                                        text = statusText,
+                                        style = MaterialTheme.typography.labelLarge,
                                         color = statusColor,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -294,150 +346,72 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = stringResource(R.string.reported_by) + ": ${report.username}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                            Text(
+                                text = displayTitle,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
 
-                            val dateStr = remember(report.timestamp) {
-                                if (report.timestamp > 0) {
-                                    val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
-                                    sdf.format(Date(report.timestamp))
-                                } else context.getString(R.string.recently)
-                            }
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = stringResource(R.string.date) + ": $dateStr",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
 
-                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = report.description,
-                                style = MaterialTheme.typography.bodyMedium
+                                text = stringResource(R.string.reported_by) + " ${report.username}, $dateStr",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF64748B)
                             )
-
-                            if (report.photoBase64.isNotBlank()) {
-                                val imageBytes = remember(report.photoBase64) {
-                                    try {
-                                        val clean = report.photoBase64.replace("\n", "").replace("\r", "").trim()
-                                        if (clean.isNotBlank()) Base64.decode(clean, Base64.DEFAULT) else null
-                                    } catch (e: Exception) {
-                                        null
-                                    }
-                                }
-                                if (imageBytes != null) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                selectedPhotoForZoom = Pair(report.title, report.photoBase64)
-                                            }
-                                    ) {
-                                        AsyncImage(
-                                            model = imageBytes,
-                                            contentDescription = "User attached photo",
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(160.dp)
-                                                .clip(RoundedCornerShape(12.dp)),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                        Surface(
-                                            color = Color.Black.copy(alpha = 0.6f),
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier
-                                                .align(Alignment.BottomEnd)
-                                                .padding(8.dp)
-                                        ) {
-                                            Text(
-                                                text = stringResource(R.string.tap_to_enlarge),
-                                                color = Color.White,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
 
                             if (report.adminFeedback.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.fillMaxWidth()
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp))
+                                        .padding(12.dp)
                                 ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
-                                        Text(
-                                            text = stringResource(R.string.current_admin_feedback),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = report.adminFeedback,
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
+                                    Text(
+                                        text = stringResource(R.string.admin_feedback),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = report.adminFeedback,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF334155)
+                                    )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            OutlinedButton(
+                                onClick = {
+                                    editingReport = report
+                                    feedbackInput = report.adminFeedback
+                                    statusInput = if (report.status.equals(context.getString(R.string.resolved), ignoreCase = true)) context.getString(R.string.resolved)
+                                                  else if (report.status.equals(context.getString(R.string.pending), ignoreCase = true)) context.getString(R.string.pending)
+                                                  else context.getString(R.string.in_progress)
+                                },
+                                modifier = Modifier.fillMaxWidth().height(42.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                             ) {
-                                Button(
-                                    onClick = {
-                                        editingReport = report
-                                        feedbackInput = report.adminFeedback
-                                        statusInput = report.status.ifBlank { context.getString(R.string.in_progress) }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(stringResource(R.string.respond_or_edit))
-                                }
-
-                                if (!report.status.equals(stringResource(R.string.resolved), ignoreCase = true)) {
-                                    OutlinedButton(
-                                        onClick = {
-                                            scope.launch {
-                                                firebaseRepo.updateProblemReportFeedback(
-                                                    report.reportId,
-                                                    report.adminFeedback.ifBlank { context.getString(R.string.issue_mark_by_admin) },
-                                                    context.getString(R.string.resolved)
-                                                )
-                                                Toast.makeText(context, context.getString(R.string.report_mark_as_resolved), Toast.LENGTH_SHORT).show()
-                                                reports = firebaseRepo.getAllProblemReports()
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Text(stringResource(R.string.quick_resolved))
-                                    }
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color(0xFF0284C7)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.reply_or_edit_feedback),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0284C7)
+                                )
                             }
                         }
                     }
@@ -446,59 +420,81 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
         }
     }
 
-    // Photo Zoom Dialog for Admin
-    if (selectedPhotoForZoom != null) {
-        val (title, photoBase64) = selectedPhotoForZoom!!
-        FullScreenImageDialog(
-            photoBase64 = photoBase64,
-            title = title,
-            onDismiss = { selectedPhotoForZoom = null }
-        )
-    }
-
-    // Response Dialog
-    if (editingReport != null) {
-        val targetReport = editingReport!!
+    // Edit Feedback Dialog
+    editingReport?.let { targetReport ->
         AlertDialog(
             onDismissRequest = { editingReport = null },
-            title = { Text(stringResource(R.string.provide_admin_feedback)) },
-            text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(stringResource(R.string.report) + ": ${targetReport.title}", fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.user) + ": ${targetReport.username}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                    OutlinedTextField(
-                        value = feedbackInput,
-                        onValueChange = { feedbackInput = it },
-                        label = { Text(stringResource(R.string.admin_feedback)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color.White,
+            title = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.reply_or_edit_feedback),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
                     )
-
-                    val statusOptions = listOf(context.getString(R.string.pending), context.getString(R.string.in_progress), context.getString(R.string.resolved))
-                    Text(stringResource(R.string.status_update), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-
-                        ) {
-                        statusOptions.forEach { opt ->
-                            FilterChip(
-                                selected = statusInput == opt,
-                                onClick = { statusInput = opt },
-                                label = {
-                                    Text (
-                                        text = opt,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                },
-                                shape = RoundedCornerShape(12.dp)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.user) + ": ${targetReport.username.ifBlank { "User" }}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF64748B)
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.admin_feedback),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF334155)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = feedbackInput,
+                            onValueChange = { feedbackInput = it },
+                            placeholder = { Text(stringResource(R.string.enter_resolution_or_response), color = Color(0xFF94A3B8)) },
+                            modifier = Modifier.fillMaxWidth().height(120.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedBorderColor = Color(0xFF0284C7),
+                                unfocusedContainerColor = Color.White,
+                                focusedContainerColor = Color.White
                             )
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = stringResource(R.string.status),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF334155)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(stringResource(R.string.pending), stringResource(R.string.in_progress), stringResource(R.string.resolved)).forEach { st ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth().clickable { statusInput = st }
+                                ) {
+                                    RadioButton(
+                                        selected = statusInput.equals(st, ignoreCase = true),
+                                        onClick = { statusInput = st },
+                                        colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0369A1))
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = st,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -508,21 +504,37 @@ fun AdminReportsScreen(firebaseRepo: FirebaseRepository) {
                     onClick = {
                         scope.launch {
                             firebaseRepo.updateProblemReportFeedback(targetReport.reportId, feedbackInput, statusInput)
-                            Toast.makeText(context, context.getString(R.string.feedback_saved) +" !", Toast.LENGTH_SHORT).show()
                             reports = firebaseRepo.getAllProblemReports()
                             editingReport = null
+                            Toast.makeText(context, (R.string.feedback_updated_successfully), Toast.LENGTH_SHORT).show()
                         }
                     },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0369A1))
                 ) {
-                    Text(stringResource(R.string.save_response))
+                    Text(stringResource(R.string.save_feedback), fontWeight = FontWeight.Bold, color = Color.White)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { editingReport = null }) {
-                    Text(stringResource(R.string.cancel))
+                OutlinedButton(
+                    onClick = { editingReport = null },
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                ) {
+                    Text(stringResource(android.R.string.cancel), color = Color(0xFF334155), fontWeight = FontWeight.SemiBold)
                 }
             }
         )
+    }
+}
+
+fun normalizeReportStatus(status: String?): String {
+    if (status.isNullOrBlank()) return "Pending"
+    val lower = status.trim().lowercase()
+    return when {
+        lower.contains("progress") || lower.contains("proses") || lower.contains("in_progress") -> "In Progress"
+        lower.contains("resolve") || lower.contains("selesai") || lower.contains("complete") -> "Resolved"
+        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
+        else -> "Pending"
     }
 }

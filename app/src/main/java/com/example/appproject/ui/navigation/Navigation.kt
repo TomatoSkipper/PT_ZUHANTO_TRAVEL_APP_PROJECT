@@ -609,6 +609,8 @@ fun AppNavigationDrawer() {
                             onClick = {
                                 scope.launch { drawerState.close() }
                                 loggedInUser = null
+                                isAdminLoggedIn = false
+                                displayUsername = null
                                 sessionPreferences.edit().remove("signed_in_username").apply()
                                 FirebaseAuth.getInstance().signOut()
                                 navController.navigate("dashboard") {
