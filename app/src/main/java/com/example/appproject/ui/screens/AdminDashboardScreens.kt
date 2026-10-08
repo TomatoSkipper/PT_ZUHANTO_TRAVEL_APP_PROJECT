@@ -75,6 +75,7 @@ import com.example.appproject.R
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.model.StatusOption
 import com.example.appproject.data.model.getBookingStatusDisplay
+import com.example.appproject.data.model.getPaymentStatusDisplay
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.example.appproject.data.model.normalizePaymentStatus
 import com.example.appproject.data.repository.FirebaseRepository
@@ -486,6 +487,17 @@ fun AdminBookingCard(
                 Spacer(modifier = Modifier.height(6.dp))
                 BookingDetailRow(label = stringResource(R.string.price_paid), value = booking.finalPrice)
             }
+            if (booking.paymentStatus.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                val normPayment = normalizePaymentStatus(booking.paymentStatus)
+                val paymentDisplay = getPaymentStatusDisplay(booking.paymentStatus, context)
+                val paymentColor = if (normPayment == "Paid") Color(0xFF047857) else Color(0xFFD97706)
+                BookingDetailRow(
+                    label = stringResource(R.string.payment_status),
+                    value = paymentDisplay,
+                    valueColor = paymentColor
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -623,6 +635,14 @@ fun DeleteBookingDialog(
                             BookingDetailRow(label = stringResource(R.string.price_paid), value = booking.finalPrice)
                         }
                         BookingDetailRow(label = stringResource(R.string.status), value = statusText, valueColor = statusColor)
+                        val normPayment = normalizePaymentStatus(booking.paymentStatus)
+                        val paymentDisplay = getPaymentStatusDisplay(booking.paymentStatus, context)
+                        val paymentColor = if (normPayment == "Paid") Color(0xFF047857) else Color(0xFFD97706)
+                        BookingDetailRow(
+                            label = stringResource(R.string.payment_status),
+                            value = paymentDisplay,
+                            valueColor = paymentColor
+                        )
                     }
                 }
             }

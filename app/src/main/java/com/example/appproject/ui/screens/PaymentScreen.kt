@@ -165,7 +165,6 @@ fun PaymentScreen(
     val invalidVoucherMsg = stringResource(R.string.invalid_voucher)
 
     val publishableKey = "pk_test_51UNOmW984JcO38MUl2fQbGvBbgnCyLVaPdPhwlUTMSR1dXkjrZzV8Gl5VV96wZKTtv2UUaVOqFcy48zCvgpr3FpH00mrOstu0x"
-    val secretKey = "sk_test_51UNOmW984JcO38MUvHE1OJuDLgCfMFl82KWJf5aInHErmm6RyVi8O2sii0UOsP9PxzGKWpS0RqH8uFmSHLzKyiX9006Dq3Xw2b"
 
     // Stripe PaymentSheet integration
     val paymentSheet = rememberPaymentSheet { result ->
@@ -445,7 +444,7 @@ fun PaymentScreen(
                             } else {
                                 createStripePaymentIntent(
                                     calculatedFinalPrice,
-                                    secretKey,
+                                    com.example.appproject.BuildConfig.STRIPE_SECRET_KEY,
                                     currency = targetCurrency
                                 )
                             }
