@@ -83,7 +83,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.NumberFormat
 import java.util.Locale
 
 class PaymentScreen : ComponentActivity() {
@@ -1049,8 +1048,7 @@ private fun parseCurrencyToDouble(priceStr: String): Double {
 }
 
 private fun formatCurrency(amount: Double): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
-    return formatter.format(amount).replace("Rp", "Rp ").trim()
+    return "IDR " + String.format(Locale.US, "%,d", amount.toLong())
 }
 
 

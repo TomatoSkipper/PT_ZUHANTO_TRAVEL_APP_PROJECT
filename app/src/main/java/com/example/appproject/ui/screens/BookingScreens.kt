@@ -71,6 +71,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -122,14 +123,21 @@ fun MyBookingsScreen(
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(username) {
+    DisposableEffect(username) {
         isLoading = true
-        val test = firebaseRepo.testConnection()
-        if (test != "Connected") {
-            connectionStatus = test
+        scope.launch {
+            val test = firebaseRepo.testConnection()
+            if (test != "Connected") {
+                connectionStatus = test
+            }
         }
-        bookings = firebaseRepo.getBookingsForUser(username)
-        isLoading = false
+        val listener = firebaseRepo.listenToBookingsForUser(username) { updatedList ->
+            bookings = updatedList
+            isLoading = false
+        }
+        onDispose {
+            listener?.remove()
+        }
     }
 
     Column(

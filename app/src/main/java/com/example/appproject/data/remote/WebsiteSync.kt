@@ -1108,10 +1108,10 @@ fun extractPriceByTargetClass(
                 val couplePrice = if (isCouple) (if (priceInt > 3000000) priceInt else perPaxInt * 2) else 0
 
                 val formattedTier = if (isCouple) {
-                    "IDR " + String.format(Locale.US, "%,d", couplePrice).replace(',', '.') + " / " + getString(
+                    "IDR " + String.format(Locale.US, "%,d", couplePrice) + " / " + getString(
                         R.string.couple, "couple")
                 } else {
-                    "IDR " + String.format(Locale.US, "%,d", perPaxInt).replace(',', '.') + " / " + getString(
+                    "IDR " + String.format(Locale.US, "%,d", perPaxInt) + " / " + getString(
                         R.string.pax, "pax")
                 }
 
@@ -1126,10 +1126,10 @@ fun extractPriceByTargetClass(
 
                 if (overallPrice.isEmpty()) {
                     overallPrice = if (isCouple) {
-                        "IDR " + String.format(Locale.US, "%,d", couplePrice).replace(',', '.') + " / " + getString(
+                        "IDR " + String.format(Locale.US, "%,d", couplePrice) + " / " + getString(
                             R.string.couple, "couple")
                     } else {
-                        "IDR " + String.format(Locale.US, "%,d", priceInt).replace(',', '.') + " / " + getString(
+                        "IDR " + String.format(Locale.US, "%,d", priceInt) + " / " + getString(
                             R.string.person, "person")
                     }
                 }
@@ -1158,8 +1158,7 @@ fun extractPriceByTargetClass(
                         paxCount = 1,
                         paxLabel = getString(R.string.basic_package_A, "Package A (Standard)"),
                         pricePerPaxInt = pkgAPriceInt,
-                        priceFormatted = "IDR " + String.format(Locale.US, "%,d", pkgAPriceInt)
-                            .replace(',', '.') + " / " + getString(R.string.pax, "pax")
+                        priceFormatted = "IDR " + String.format(Locale.US, "%,d", pkgAPriceInt) + " / " + getString(R.string.pax, "pax")
                     )
                 )
             }
@@ -1169,14 +1168,13 @@ fun extractPriceByTargetClass(
                         paxCount = 2,
                         paxLabel = getString(R.string.complete_package_B, "Package B (Premium)"),
                         pricePerPaxInt = pkgBPriceInt,
-                        priceFormatted = "IDR " + String.format(Locale.US, "%,d", pkgBPriceInt)
-                            .replace(',', '.') + " / " + getString(R.string.pax, "pax")
+                        priceFormatted = "IDR " + String.format(Locale.US, "%,d", pkgBPriceInt) + " / " + getString(R.string.pax, "pax")
                     )
                 )
             }
 
-            val strA = "IDR " + String.format(Locale.US, "%,d", pkgAPriceInt).replace(',', '.')
-            val strB = "IDR " + String.format(Locale.US, "%,d", pkgBPriceInt).replace(',', '.')
+            val strA = "IDR " + String.format(Locale.US, "%,d", pkgAPriceInt)
+            val strB = "IDR " + String.format(Locale.US, "%,d", pkgBPriceInt)
             overallPrice = "$strA - $strB / " + getString(R.string.person, "person")
         } else if (extractedPairs.isNotEmpty()) {
             val raw = extractedPairs[0].second.ifEmpty { extractedPairs[0].first }
@@ -1185,15 +1183,14 @@ fun extractPriceByTargetClass(
             if (raw.contains(".") && !raw.contains(",") && digits.length <= 4) priceInt *= 1000
 
             if (priceInt > 0) {
-                overallPrice = "IDR " + String.format(Locale.US, "%,d", priceInt).replace(',', '.') + " / " + getString(
+                overallPrice = "IDR " + String.format(Locale.US, "%,d", priceInt) + " / " + getString(
                     R.string.person, "person")
                 tiers.add(
                     PricingTier(
                         paxCount = 1,
                         paxLabel = getString(R.string.one_pax, "1 Pax"),
                         pricePerPaxInt = priceInt,
-                        priceFormatted = "IDR " + String.format(Locale.US, "%,d", priceInt)
-                            .replace(',', '.') + " / " + getString(R.string.pax, "pax")
+                        priceFormatted = "IDR " + String.format(Locale.US, "%,d", priceInt) + " / " + getString(R.string.pax, "pax")
                     )
                 )
             } else {

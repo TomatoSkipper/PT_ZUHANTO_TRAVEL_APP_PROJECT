@@ -24,7 +24,7 @@ class ExampleUnitTest {
         // 2. Ijen Blue Fire Package
         val ijenUrl = "$baseUrl/ijen-blue-fire-package"
         val (ijenPrice, ijenTiers) = extractPriceByTargetClass(ijenUrl, null, jsContent)
-        assertEquals("IDR 3.450.000 / couple", ijenPrice)
+        assertEquals("IDR 3,450,000 / couple", ijenPrice)
         assertEquals(5, ijenTiers.size)
         assertEquals(1725000, ijenTiers[0].pricePerPaxInt)
 
@@ -35,14 +35,14 @@ class ExampleUnitTest {
             null,
             jsContent
         )
-        assertEquals("IDR 3.555.000 / couple", jogjaDiengPrice)
+        assertEquals("IDR 3,555,000 / couple", jogjaDiengPrice)
         assertEquals(5, jogjaDiengTiers.size)
         assertEquals(1777500, jogjaDiengTiers[0].pricePerPaxInt)
 
         // 4. Tumpak Sewu Trip
         val tumpakUrl = "$baseUrl/tumpak-sewu-package"
         val (tumpakPrice, tumpakTiers) = extractPriceByTargetClass(tumpakUrl, null, jsContent)
-        assertEquals("IDR 385.000 - IDR 445.000 / person", tumpakPrice)
+        assertEquals("IDR 385,000 - IDR 445,000 / person", tumpakPrice)
         assertEquals(2, tumpakTiers.size)
         assertEquals(385000, tumpakTiers[0].pricePerPaxInt)
         assertEquals(445000, tumpakTiers[1].pricePerPaxInt)
@@ -50,7 +50,7 @@ class ExampleUnitTest {
         // 5. Mount Rinjani Trekking 2026
         val rinjaniUrl = "$baseUrl/mount-rinjani-trekking"
         val (rinjaniPrice, rinjaniTiers) = extractPriceByTargetClass(rinjaniUrl, null, jsContent)
-        assertEquals("IDR 5.300.000 / person", rinjaniPrice)
+        assertEquals("IDR 5,300,000 / person", rinjaniPrice)
         assertEquals(1, rinjaniTiers.size)
         assertEquals(5300000, rinjaniTiers[0].pricePerPaxInt)
 
@@ -61,7 +61,7 @@ class ExampleUnitTest {
             null,
             jsContent
         )
-        assertEquals("IDR 975.000 / person", yogyakartaPrice)
+        assertEquals("IDR 975,000 / person", yogyakartaPrice)
         assertEquals(1, yogyakartaTiers.size)
         assertEquals(975000, yogyakartaTiers[0].pricePerPaxInt)
 
@@ -72,7 +72,7 @@ class ExampleUnitTest {
             null,
             jsContent
         )
-        assertEquals("IDR 1.850.000 / person", mountBromoPrice)
+        assertEquals("IDR 1,850,000 / person", mountBromoPrice)
         assertEquals(1, mountBromoTiers.size)
         assertEquals(1850000, mountBromoTiers[0].pricePerPaxInt)
 
@@ -83,7 +83,7 @@ class ExampleUnitTest {
             null,
             jsContent
         )
-        assertEquals("IDR 1.450.000 / person", borobudurPrice)
+        assertEquals("IDR 1,450,000 / person", borobudurPrice)
         assertEquals(1, borobudurTiers.size)
         assertEquals(1450000, borobudurTiers[0].pricePerPaxInt)
 
@@ -94,14 +94,14 @@ class ExampleUnitTest {
             null,
             jsContent
         )
-        assertEquals("IDR 1.850.000 / person", ijenCraterPrice)
+        assertEquals("IDR 1,850,000 / person", ijenCraterPrice)
         assertEquals(1, ijenCraterTiers.size)
         assertEquals(1850000, ijenCraterTiers[0].pricePerPaxInt)
 
         //10. Bali
         val baliUrl = "$baseUrl/bali-package"
         val (baliPrice, baliTiers) = extractPriceByTargetClass(baliUrl, null, jsContent)
-        assertEquals("IDR 2.750.000 / person", baliPrice)
+        assertEquals("IDR 2,750,000 / person", baliPrice)
         assertEquals(1, baliTiers.size)
         assertEquals(2750000, baliTiers[0].pricePerPaxInt)
 
@@ -112,7 +112,7 @@ class ExampleUnitTest {
             null,
             jsContent
         )
-        assertEquals("IDR 4.950.000 / person", labuanBajoPrice)
+        assertEquals("IDR 4,950,000 / person", labuanBajoPrice)
         assertEquals(1, labuanBajoTiers.size)
         assertEquals(4950000, labuanBajoTiers[0].pricePerPaxInt)
 
@@ -123,7 +123,7 @@ class ExampleUnitTest {
             null,
             jsContent
         )
-        assertEquals("IDR 7.950.000 / person", rajaAmpatPrice)
+        assertEquals("IDR 7,950,000 / person", rajaAmpatPrice)
         assertEquals(1, rajaAmpatTiers.size)
         assertEquals(7950000, rajaAmpatTiers[0].pricePerPaxInt)
 

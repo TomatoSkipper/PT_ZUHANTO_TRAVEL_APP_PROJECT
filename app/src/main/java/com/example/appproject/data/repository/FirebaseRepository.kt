@@ -8,6 +8,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
@@ -209,35 +212,33 @@ class FirebaseRepository {
     fun listenToBookingsForUser(query: String, onUpdate: (List<Booking>) -> Unit): ListenerRegistration? {
         if (query.isBlank()) return null
         return try {
-            bookingsCollection
-                ?.whereEqualTo("customerUid", query)
-                ?.addSnapshotListener { snapshotUid, error ->
-                    if (error != null) {
-                        Log.e(TAG, "Listen failed: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    val bookings = mutableListOf<Booking>()
-                    val seenIds = mutableSetOf<String>()
-                    if (snapshotUid != null) {
-                        bookings.addAll(snapshotUid.toObjects(Booking::class.java))
-                        seenIds.addAll(bookings.map { it.bookingId })
-                    }
-
-                    bookingsCollection
-                        ?.whereEqualTo("customerUsername", query)
-                        ?.get()
-                        ?.addOnSuccessListener { snapshotUsername ->
-                            if (snapshotUsername != null) {
-                                for (doc in snapshotUsername.documents) {
-                                    val b = doc.toObject(Booking::class.java)
-                                    if (b != null && seenIds.add(b.bookingId)) {
-                                        bookings.add(b)
-                                    }
-                                }
-                            }
-                            onUpdate(bookings.sortedBy { it.bookingDate })
-                        }
+            bookingsCollection?.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error listening to bookings for user: ${error.message}")
+                    return@addSnapshotListener
                 }
+                if (snapshot != null) {
+                    val allBookings = snapshot.toObjects(Booking::class.java)
+                    val scope = CoroutineScope(Dispatchers.IO)
+                    scope.launch {
+                        val bookings = mutableListOf<Booking>()
+                        val seenIds = mutableSetOf<String>()
+
+                        val user = getUser(query)
+                        val targetUsername = user?.username?.ifBlank { query } ?: query
+                        val targetUid = user?.uid?.ifBlank { query } ?: query
+
+                        for (b in allBookings) {
+                            if ((b.customerUid == query || b.customerUsername == query ||
+                                 b.customerUsername == targetUsername || b.customerUid == targetUsername ||
+                                 b.customerUid == targetUid) && seenIds.add(b.bookingId)) {
+                                bookings.add(b)
+                            }
+                        }
+                        onUpdate(bookings.sortedBy { it.bookingDate })
+                    }
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error listening to bookings for user: ${e.message}")
             null

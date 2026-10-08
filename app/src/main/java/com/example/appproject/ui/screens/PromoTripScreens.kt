@@ -1180,9 +1180,9 @@ fun BookingDialog(
     val finalPriceString = remember(totalBasePriceInt, appliedDiscount) {
         if (appliedDiscount > 0) {
             val discountedPrice = (totalBasePriceInt * (100 - appliedDiscount)) / 100
-            String.format(Locale.US, "IDR %,d", discountedPrice).replace(',', '.')
+            String.format(Locale.US, "IDR %,d", discountedPrice)
         } else {
-            String.format(Locale.US, "IDR %,d", totalBasePriceInt).replace(',', '.')
+            String.format(Locale.US, "IDR %,d", totalBasePriceInt)
         }
     }
 
@@ -1210,14 +1210,13 @@ fun BookingDialog(
                     status = "Pending",
                     paymentStatus = "Pending",
                     finalPrice = finalPriceString,
-                    basePrice = "IDR " + String.format(Locale.US, "%,d", totalBasePriceInt)
-                        .replace(',', '.'),
+                    basePrice = "IDR " + String.format(Locale.US, "%,d", totalBasePriceInt),
                     discountAmount = if (appliedDiscount > 0) {
                         String.format(
                             Locale.US,
                             "IDR %,d",
                             (totalBasePriceInt * appliedDiscount) / 100
-                        ).replace(',', '.')
+                        )
                     } else "IDR 0",
                     voucherUsed = if (appliedDiscount > 0) voucherCode.trim().uppercase() else ""
                 )
@@ -1362,7 +1361,7 @@ fun BookingDialog(
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                val rateStr = if (selectedTier.pricePerPaxInt > 0) String.format(Locale.US, "IDR %,d / pax", selectedTier.pricePerPaxInt).replace(',', '.') else ""
+                                val rateStr = if (selectedTier.pricePerPaxInt > 0) String.format(Locale.US, "IDR %,d / pax", selectedTier.pricePerPaxInt) else ""
                                 Text(
                                     text = rateStr,
                                     style = MaterialTheme.typography.labelMedium,
@@ -1634,7 +1633,7 @@ fun BookingDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "IDR " + String.format(Locale.US, "%,d", totalBasePriceInt).replace(',', '.'),
+                                text = "IDR " + String.format(Locale.US, "%,d", totalBasePriceInt),
                                 modifier = Modifier.weight(0.5f, fill = false),
                                 textAlign = TextAlign.End,
                                 style = MaterialTheme.typography.bodySmall,
@@ -1657,7 +1656,7 @@ fun BookingDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "- IDR " + String.format(Locale.US, "%,d", (totalBasePriceInt * appliedDiscount) / 100).replace(',', '.'),
+                                    text = "- IDR " + String.format(Locale.US, "%,d", (totalBasePriceInt * appliedDiscount) / 100),
                                     modifier = Modifier.weight(0.5f, fill = false),
                                     textAlign = TextAlign.End,
                                     style = MaterialTheme.typography.bodySmall,

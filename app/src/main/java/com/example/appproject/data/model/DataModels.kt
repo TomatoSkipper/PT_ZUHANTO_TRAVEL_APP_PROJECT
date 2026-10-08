@@ -59,7 +59,7 @@ fun getFormattedTierPrice(tier: PricingTier): String {
         }
         if (tier.pricePerPaxInt <= 0) return ""
         val totalInt = tier.pricePerPaxInt * 2
-        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt).replace(',', '.')
+        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt)
         return "$totalFormatted / couple"
     }
 
@@ -67,9 +67,9 @@ fun getFormattedTierPrice(tier: PricingTier): String {
     if (tier.pricePerPaxInt <= 0) return ""
     val perPax = tier.pricePerPaxInt
     val totalInt = perPax * pax
-    val perPaxFormatted = "IDR " + String.format(Locale.US, "%,d", perPax).replace(',', '.')
+    val perPaxFormatted = "IDR " + String.format(Locale.US, "%,d", perPax)
     if (pax > 1) {
-        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt).replace(',', '.')
+        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt)
         return "$totalFormatted ($perPaxFormatted / pax)"
     }
     return "$perPaxFormatted / pax"
