@@ -24,50 +24,33 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Handshake
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +70,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,7 +80,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.appproject.R
-import kotlinx.coroutines.tasks.await
 import com.example.appproject.data.model.isUserAdmin
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.example.appproject.data.repository.FirebaseRepository
@@ -106,8 +89,10 @@ import com.example.appproject.ui.screens.AdminScreen
 import com.example.appproject.ui.screens.AdminUsersScreen
 import com.example.appproject.ui.screens.AdminVouchersScreen
 import com.example.appproject.ui.screens.DashboardHomeScreen
+import com.example.appproject.ui.screens.HelpScreen
 import com.example.appproject.ui.screens.InvoiceScreen
 import com.example.appproject.ui.screens.LoginScreen
+import com.example.appproject.ui.screens.MyAccountScreen
 import com.example.appproject.ui.screens.MyBookingsScreen
 import com.example.appproject.ui.screens.PartnerScreen
 import com.example.appproject.ui.screens.PaymentScreen
@@ -130,6 +115,7 @@ import com.example.appproject.worker.showBookingConfirmedNotification
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,7 +126,6 @@ fun AppNavigationDrawer() {
         context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
     }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     val navController = rememberNavController()
@@ -287,482 +272,459 @@ fun AppNavigationDrawer() {
     if (showSplash) {
         SplashWithCircularLogo(onSplashFinished = { showSplash = false })
     } else {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet(
-                    modifier = Modifier.width(250.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
-                    windowInsets = WindowInsets(0)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                    // Modern Header Card in Navigation Drawer
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(NavyStart, PrimaryBlue, Color(0xFF1E88E5))
-                                )
-                            )
-                            .padding(24.dp)
-                    ) {
-                        Column {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             Surface(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape),
                                 shape = CircleShape,
+                                shadowElevation = 3.dp,
                                 color = Color.White,
-                                shadowElevation = 6.dp
+                                modifier = Modifier.size(38.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = PrimaryBlue,
-                                        modifier = Modifier.size(40.dp)
+                                    Image(
+                                        painter = painterResource(id = R.drawable.zti_logo),
+                                        contentDescription = "PT Zuhanto Travel Logo",
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.size(28.dp)
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Text(
-                                text = if (loggedInUser != null) "Hello, ${displayUsername ?: "Traveler"}" else stringResource(R.string.company_name_zuhanto),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = if (loggedInUser != null) stringResource(R.string.ready_for_your_next_trip) + "?" else stringResource(R.string.explore_indonesia_in_style),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.company_name_zuhanto),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontSize = 15.sp,
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryBlue
+                                )
+                                Text(
+                                    text = "INDONESIA",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFE11D48)
+                                )
+                            }
                         }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Drawer Group 1: Main Exploration
-                    Text(
-                        text = stringResource(R.string.explore),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 4.dp)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Explore, contentDescription = null) },
-                        label = {
-                            Text(
-                                when {
-                                    isAdminLoggedIn -> stringResource(R.string.admin_dashboard)
-                                    else -> stringResource(R.string.dashboard)
-                                },
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        },
-                        selected = if (loggedInUser != null) {
-                            if (isAdminLoggedIn) currentRoute == "admin"
-                            else currentRoute?.startsWith("dashboard") == true
-                        } else {
-                            currentRoute == "home" || currentRoute == "dashboard"
-                        },
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            if (loggedInUser != null) {
-                                val targetRoute = if (isAdminLoggedIn) "admin" else "dashboard/$loggedInUser"
-                                if (currentRoute != targetRoute) {
-                                    navController.navigate(targetRoute) { launchSingleTop = true }
-                                }
-                            } else {
-                                if (currentRoute != "dashboard") {
-                                    navController.navigate("dashboard") {
-                                        popUpTo(0) { inclusive = true }
+                    },
+                    actions = {
+                        if (loggedInUser == null) {
+                            Button(
+                                onClick = {
+                                    navController.navigate("home") {
                                         launchSingleTop = true
                                     }
-                                }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryBlue,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(20.dp),
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.login), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedIconColor = PrimaryBlue,
-                            selectedTextColor = PrimaryBlue
-                        ),
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    if (!isAdminLoggedIn) {
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Place, contentDescription = null) },
-                            label = { Text(stringResource(R.string.promo_trip), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "promotrip",
-                            onClick = {
-                                navController.navigate("promotrip") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) },
-                            label = { Text("AI Travel Assistant", fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute?.startsWith("chat") == true,
-                            onClick = {
-                                navController.navigate("chat") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.secondary,
-                                selectedTextColor = MaterialTheme.colorScheme.secondary
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
+                        }
                     }
+                )
+            },
+            bottomBar = {
+                if (currentRoute?.startsWith("trip-detail/") != true) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp
+                    ) {
+                        val isDashboardSelected = currentRoute == "dashboard" || currentRoute?.startsWith("dashboard/") == true
+                        val isPromoTripSelected = currentRoute == "promotrip" || currentRoute?.startsWith("trip-detail/") == true
+                        val isBookingsSelected = currentRoute?.startsWith("bookings/") == true
+                        val isHelpSelected = currentRoute == "help"
+                        val isMyAccountSelected = currentRoute == "myaccount" || currentRoute == "vouchers" || currentRoute?.startsWith("profile/") == true || currentRoute == "settings" || currentRoute == "about" || currentRoute == "partner"
 
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-
-                    // Drawer Group 2: Account & Travel
-                    if (loggedInUser != null && !isAdminLoggedIn) {
-                        Text(
-                            text = stringResource(R.string.my_account),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Book, contentDescription = null) },
-                            label = { Text(stringResource(R.string.my_bookings), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute?.startsWith("bookings") == true,
+                        NavigationBarItem(
+                            selected = isDashboardSelected,
                             onClick = {
-                                navController.navigate("bookings/$loggedInUser") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                            label = { Text(stringResource(R.string.available_vouchers), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "vouchers",
-                            onClick = {
-                                navController.navigate("vouchers") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            label = { Text(stringResource(R.string.profile_lowercase), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute?.startsWith("profile") == true,
-                            onClick = {
-                                navController.navigate("profile/$loggedInUser") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-                    }
-
-                    if (isAdminLoggedIn) {
-                        Text(
-                            text = stringResource(R.string.admin_controls),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            label = { Text(stringResource(R.string.user_account), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "admin-users",
-                            onClick = {
-                                navController.navigate("admin-users") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-                            label = { Text(stringResource(R.string.user_reports), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "admin-reports",
-                            onClick = {
-                                navController.navigate("admin-reports") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                            label = { Text(stringResource(R.string.manage_vouchers), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "admin-vouchers",
-                            onClick = {
-                                navController.navigate("admin-vouchers") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-                    }
-
-                    // Drawer Group 3: App Information
-                    Text(
-                        text = stringResource(R.string.info_and_settings),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Handshake, contentDescription = null) },
-                        label = { Text(stringResource(R.string.partner), fontWeight = FontWeight.Medium) },
-                        selected = currentRoute == "partner",
-                        onClick = {
-                            navController.navigate("partner") { launchSingleTop = true }
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                        label = { Text(stringResource(R.string.settings), fontWeight = FontWeight.Medium) },
-                        selected = currentRoute == "settings",
-                        onClick = {
-                            navController.navigate("settings") {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Info, contentDescription = null) },
-                        label = { Text(stringResource(R.string.about), fontWeight = FontWeight.Medium) },
-                        selected = currentRoute == "about",
-                        onClick = {
-                            navController.navigate("about") {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    if (loggedInUser != null) {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-
-                        NavigationDrawerItem(
-                            icon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            label = {
-                                Text(
-                                    stringResource(R.string.logout),
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
-                            selected = false,
-                            onClick = {
-                                scope.launch { drawerState.close() }
-                                loggedInUser = null
-                                isAdminLoggedIn = false
-                                displayUsername = null
-                                sessionPreferences.edit().remove("signed_in_username").apply()
-                                FirebaseAuth.getInstance().signOut()
-                                navController.navigate("dashboard") {
-                                    popUpTo(0) { inclusive = true }
-                                    launchSingleTop = true
+                                val target = if (loggedInUser != null) "dashboard/$loggedInUser" else "dashboard"
+                                if (currentRoute != target) {
+                                    navController.navigate(target) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                            label = { Text("Home") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isPromoTripSelected,
+                            onClick = {
+                                if (currentRoute != "promotrip") {
+                                    navController.navigate("promotrip") {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.Default.Place, contentDescription = "Promo Trip") },
+                            label = { Text(
+                                text = stringResource(R.string.promo_trip),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            ) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isBookingsSelected,
+                            onClick = {
+                                if (loggedInUser != null && !isAdminLoggedIn) {
+                                    val target = "bookings/$loggedInUser"
+                                    if (currentRoute != target) {
+                                        navController.navigate(target) {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                } else {
+                                    navController.navigate("home") { launchSingleTop = true }
+                                }
+                            },
+                            icon = { Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Bookings") },
+                            label = { Text(stringResource(R.string.my_bookings)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isHelpSelected,
+                            onClick = {
+                                if (currentRoute != "help") {
+                                    navController.navigate("help") {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Help") },
+                            label = { Text(stringResource(R.string.help)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isMyAccountSelected,
+                            onClick = {
+                                if (currentRoute != "myaccount") {
+                                    navController.navigate("myaccount") {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.Default.AccountCircle, contentDescription = "My Account") },
+                            label = { Text(stringResource(R.string.my_account)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
                     }
-                  }
                 }
             }
-        ) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    shadowElevation = 3.dp,
-                                    color = Color.White,
-                                    modifier = Modifier.size(38.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.zti_logo),
-                                            contentDescription = "PT Zuhanto Travel Logo",
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.size(28.dp)
-                                        )
-                                    }
-                                }
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.company_name_zuhanto),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontSize = 15.sp,
-                                        fontFamily = FontFamily.SansSerif,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PrimaryBlue
-                                    )
-                                    Text(
-                                        text = "INDONESIA",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
-                                        fontFamily = FontFamily.SansSerif,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFE11D48)
-                                    )
-                                }
-                            }
-                        },
-                        actions = {
-                            if (loggedInUser == null) {
-                                Button(
-                                    onClick = {
-                                        navController.navigate("home") {
-                                            launchSingleTop = true
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = PrimaryBlue,
-                                        contentColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(20.dp),
-                                    modifier = Modifier.padding(end = 8.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(stringResource(R.string.login), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                }
-                            } else if (!isAdminLoggedIn) {
-                                IconButton(
-                                    onClick = {
-                                        navController.navigate("profile/$loggedInUser") {
-                                            launchSingleTop = true
-                                        }
-                                    }
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        modifier = Modifier.size(34.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = (displayUsername ?: "U").take(1).uppercase(),
-                                                fontWeight = FontWeight.Bold,
-                                                color = PrimaryBlue,
-                                                fontSize = 14.sp
-                                            )
-                                        }
-                                    }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = when {
+                    isAdminLoggedIn -> "admin"
+                    loggedInUser != null -> "dashboard/$loggedInUser"
+                    else -> "dashboard"
+                },
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(350))
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(350))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(350))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(350))
+                }
+            ) {
+                composable("home") {
+                    LoginScreen(
+                        firebaseRepo = firebaseRepo,
+                        onLoginSuccess = { user ->
+                            scope.launch {
+                                val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                isAdminLoggedIn = isAdmin
+                                loggedInUser = user
+                                val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                navController.navigate(destination) {
+                                    popUpTo("home") { inclusive = true }
                                 }
                             }
                         },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = stringResource(R.string.open_drawer),
-                                    tint = PrimaryBlue
-                                )
+                        onSignUpClick = {
+                            navController.navigate("register")
+                        }
+                    )
+                }
+                composable("dashboard/{username}") { backStackEntry ->
+                    val username = backStackEntry.arguments?.getString("username") ?: ""
+                    DashboardHomeScreen(
+                        username = username,
+                        firebaseRepo = firebaseRepo,
+                        onBookNow = {
+                            navController.navigate("promotrip") {
+                                launchSingleTop = true
                             }
                         }
                     )
                 }
-            ) { innerPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = when {
-                        isAdminLoggedIn -> "admin"
-                        loggedInUser != null -> "dashboard/$loggedInUser"
-                        else -> "dashboard"
-                    },
-                    modifier = Modifier.padding(innerPadding),
-                    enterTransition = {
-                        slideInHorizontally(
-                            initialOffsetX = { it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeIn(animationSpec = tween(350))
-                    },
-                    exitTransition = {
-                        slideOutHorizontally(
-                            targetOffsetX = { -it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeOut(animationSpec = tween(350))
-                    },
-                    popEnterTransition = {
-                        slideInHorizontally(
-                            initialOffsetX = { -it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeIn(animationSpec = tween(350))
-                    },
-                    popExitTransition = {
-                        slideOutHorizontally(
-                            targetOffsetX = { it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeOut(animationSpec = tween(350))
+                composable("dashboard") {
+                    DashboardHomeScreen(
+                        username = "Traveler",
+                        firebaseRepo = firebaseRepo,
+                        onBookNow = {
+                            navController.navigate("promotrip") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("myaccount") {
+                    MyAccountScreen(
+                        loggedInUser = loggedInUser,
+                        displayUsername = displayUsername,
+                        isAdminLoggedIn = isAdminLoggedIn,
+                        firebaseRepo = firebaseRepo,
+                        onNavigateToBookings = {
+                            if (loggedInUser != null) {
+                                navController.navigate("bookings/$loggedInUser") { launchSingleTop = true }
+                            } else {
+                                navController.navigate("home") { launchSingleTop = true }
+                            }
+                        },
+                        onNavigateToVouchers = {
+                            navController.navigate("vouchers") { launchSingleTop = true }
+                        },
+                        onNavigateToProfile = {
+                            if (loggedInUser != null) {
+                                navController.navigate("profile/$loggedInUser") { launchSingleTop = true }
+                            } else {
+                                navController.navigate("home") { launchSingleTop = true }
+                            }
+                        },
+                        onNavigateToSettings = {
+                            navController.navigate("settings") { launchSingleTop = true }
+                        },
+                        onNavigateToAbout = {
+                            navController.navigate("about") { launchSingleTop = true }
+                        },
+                        onNavigateToPartner = {
+                            navController.navigate("partner") { launchSingleTop = true }
+                        },
+                        onNavigateToHelp = {
+                            navController.navigate("help") { launchSingleTop = true }
+                        },
+                        onNavigateToAdmin = {
+                            navController.navigate("admin") { launchSingleTop = true }
+                        },
+                        onNavigateToLogin = {
+                            navController.navigate("home") { launchSingleTop = true }
+                        },
+                        onLogout = {
+                            loggedInUser = null
+                            isAdminLoggedIn = false
+                            displayUsername = null
+                            sessionPreferences.edit().remove("signed_in_username").apply()
+                            FirebaseAuth.getInstance().signOut()
+                            navController.navigate("dashboard") {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("admin") {
+                    AdminScreen(
+                        firebaseRepo = firebaseRepo
+                    )
+                }
+                composable("admin-vouchers") {
+                    if (isAdminLoggedIn) {
+                        AdminVouchersScreen(firebaseRepo = firebaseRepo)
+                    } else {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
                     }
-                ) {
-                    composable("home") {
+                }
+                composable("admin-users") {
+                    if (isAdminLoggedIn) {
+                        AdminUsersScreen(firebaseRepo = firebaseRepo)
+                    } else {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
+                    }
+                }
+                composable("admin-reports") {
+                    if (isAdminLoggedIn) {
+                        AdminReportsScreen(firebaseRepo = firebaseRepo)
+                    } else {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
+                    }
+                }
+                composable("promotrip") {
+                    PromoTripScreen(
+                        username = loggedInUser ?: "",
+                        firebaseRepo = firebaseRepo,
+                        onViewTripDetail = { trip ->
+                            navController.navigate("trip-detail/${Uri.encode(trip.name)}") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onRequireLogin = {
+                            navController.navigate("home") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("trip-detail/{tripName}") { backStackEntry ->
+                    val encodedName = backStackEntry.arguments?.getString("tripName") ?: ""
+                    val tripName = Uri.decode(encodedName)
+                    PromoTripDetailScreen(
+                        tripName = tripName,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser ?: "",
+                        onBack = { navController.popBackStack() },
+                        onRequireLogin = {
+                            navController.navigate("home") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onNavigateToChat = { destination ->
+                            navController.navigate("chat/${Uri.encode(destination)}") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("chat") {
+                    TravelChatScreen(
+                        destination = "General Travel",
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("chat/{destination}") { backStackEntry ->
+                    val encodedDest = backStackEntry.arguments?.getString("destination") ?: ""
+                    val destination = Uri.decode(encodedDest)
+                    TravelChatScreen(
+                        destination = destination,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("bookings/{username}") { backStackEntry ->
+                    val username = backStackEntry.arguments?.getString("username") ?: ""
+                    if (loggedInUser == null || loggedInUser != username || isAdminLoggedIn) {
                         LoginScreen(
                             firebaseRepo = firebaseRepo,
                             onLoginSuccess = { user ->
@@ -782,306 +744,160 @@ fun AppNavigationDrawer() {
                                 navController.navigate("register")
                             }
                         )
-                    }
-                    composable("dashboard/{username}") { backStackEntry ->
-                        val username = backStackEntry.arguments?.getString("username") ?: ""
-                        DashboardHomeScreen(
+                    } else {
+                        MyBookingsScreen(
                             username = username,
                             firebaseRepo = firebaseRepo,
-                            onBookNow = {
-                                navController.navigate("promotrip") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("dashboard") {
-                        DashboardHomeScreen(
-                            username = "Traveler",
-                            firebaseRepo = firebaseRepo,
-                            onBookNow = {
-                                navController.navigate("promotrip") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("admin") {
-                        AdminScreen(
-                            firebaseRepo = firebaseRepo
-                        )
-                    }
-                    composable("admin-vouchers") {
-                        if (isAdminLoggedIn) {
-                            AdminVouchersScreen(firebaseRepo = firebaseRepo)
-                        } else {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    scope.launch {
-                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
-                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
-                                        isAdminLoggedIn = isAdmin
-                                        loggedInUser = user
-                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
-                                        navController.navigate(destination) {
-                                            popUpTo("home") { inclusive = true }
-                                        }
-                                    }
-                                },
-                                onSignUpClick = { navController.navigate("register") }
-                            )
-                        }
-                    }
-                    composable("admin-users") {
-                        if (isAdminLoggedIn) {
-                            AdminUsersScreen(firebaseRepo = firebaseRepo)
-                        } else {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    scope.launch {
-                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
-                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
-                                        isAdminLoggedIn = isAdmin
-                                        loggedInUser = user
-                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
-                                        navController.navigate(destination) {
-                                            popUpTo("home") { inclusive = true }
-                                        }
-                                    }
-                                },
-                                onSignUpClick = { navController.navigate("register") }
-                            )
-                        }
-                    }
-                    composable("admin-reports") {
-                        if (isAdminLoggedIn) {
-                            AdminReportsScreen(firebaseRepo = firebaseRepo)
-                        } else {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    scope.launch {
-                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
-                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
-                                        isAdminLoggedIn = isAdmin
-                                        loggedInUser = user
-                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
-                                        navController.navigate(destination) {
-                                            popUpTo("home") { inclusive = true }
-                                        }
-                                    }
-                                },
-                                onSignUpClick = { navController.navigate("register") }
-                            )
-                        }
-                    }
-                    composable("promotrip") {
-                        PromoTripScreen(
-                            username = loggedInUser ?: "",
-                            firebaseRepo = firebaseRepo,
-                            onViewTripDetail = { trip ->
-                                navController.navigate("trip-detail/${Uri.encode(trip.name)}") {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onRequireLogin = {
-                                navController.navigate("home") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("trip-detail/{tripName}") { backStackEntry ->
-                        val encodedName = backStackEntry.arguments?.getString("tripName") ?: ""
-                        val tripName = Uri.decode(encodedName)
-                        PromoTripDetailScreen(
-                            tripName = tripName,
-                            firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser ?: "",
-                            onBack = { navController.popBackStack() },
-                            onRequireLogin = {
-                                navController.navigate("home") {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateToChat = { destination ->
-                                navController.navigate("chat/${Uri.encode(destination)}") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("chat") {
-                        TravelChatScreen(
-                            destination = "General Travel",
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-                    composable("chat/{destination}") { backStackEntry ->
-                        val encodedDest = backStackEntry.arguments?.getString("destination") ?: ""
-                        val destination = Uri.decode(encodedDest)
-                        TravelChatScreen(
-                            destination = destination,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-                    composable("bookings/{username}") { backStackEntry ->
-                        val username = backStackEntry.arguments?.getString("username") ?: ""
-                        if (loggedInUser == null || loggedInUser != username || isAdminLoggedIn) {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    scope.launch {
-                                        val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                        val tokenResult = firebaseUser?.getIdToken(true)?.await()
-                                        val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
-                                        isAdminLoggedIn = isAdmin
-                                        loggedInUser = user
-                                        val destination = if (isAdmin) "admin" else "dashboard/$user"
-                                        navController.navigate(destination) {
-                                            popUpTo("home") { inclusive = true }
-                                        }
-                                    }
-                                },
-                                onSignUpClick = {
-                                    navController.navigate("register")
-                                }
-                            )
-                        } else {
-                            MyBookingsScreen(
-                                username = username,
-                                firebaseRepo = firebaseRepo,
-                                onViewReceipt = { bId ->
-                                    navController.navigate("receipt/$bId")
-                                },
-                                onViewInvoice = { bId ->
-                                    navController.navigate("invoice/$bId")
-                                },
-                                onPayNow = { bId ->
-                                    navController.navigate("payment/$bId")
-                                }
-                            )
-                        }
-                    }
-                    composable("payment/{bookingId}") { backStackEntry ->
-                        val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                        PaymentScreen(
-                            bookingId = bookingId,
-                            firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser,
-                            onBack = { navController.popBackStack() },
-                            onRedirectToBookings = {
-                                navController.navigate("bookings/$loggedInUser") {
-                                    popUpTo("bookings/$loggedInUser") { inclusive = false }
-                                }
-                            },
                             onViewReceipt = { bId ->
-                                navController.navigate("receipt/$bId") {
-                                    popUpTo("payment/$bId") { inclusive = true }
-                                }
+                                navController.navigate("receipt/$bId")
                             },
                             onViewInvoice = { bId ->
-                                navController.navigate("invoice/$bId") {
-                                    popUpTo("payment/$bId") { inclusive = true }
-                                }
-                            }
-                        )
-                    }
-                    composable("receipt/{bookingId}") { backStackEntry ->
-                        val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                        ReceiptScreen(
-                            bookingId = bookingId,
-                            firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser,
+                                navController.navigate("invoice/$bId")
+                            },
+                            onPayNow = { bId ->
+                                navController.navigate("payment/$bId")
+                            },
                             onBack = { navController.popBackStack() }
                         )
                     }
-                    composable("invoice/{bookingId}") { backStackEntry ->
-                        val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                        InvoiceScreen(
-                            bookingId = bookingId,
-                            firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser,
-                            onBack = { navController.popBackStack() },
-                            onViewReceipt = { bId ->
-                                navController.navigate("receipt/$bId") {
-                                    popUpTo("invoice/$bId") { inclusive = true }
-                                }
+                }
+                composable("payment/{bookingId}") { backStackEntry ->
+                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                    PaymentScreen(
+                        bookingId = bookingId,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser,
+                        onBack = { navController.popBackStack() },
+                        onRedirectToBookings = {
+                            navController.navigate("bookings/$loggedInUser") {
+                                popUpTo("bookings/$loggedInUser") { inclusive = false }
                             }
-                        )
-                    }
-                    composable("vouchers") {
-                        UserVouchersScreen(
-                            firebaseRepo = firebaseRepo,
-                            username = loggedInUser ?: ""
-                        )
-                    }
-                    composable("partner") {
-                        PartnerScreen()
-                    }
-                    composable("profile/{username}") { backStackEntry ->
-                        val usernameArg = backStackEntry.arguments?.getString("username") ?: ""
-                        if (isAdminLoggedIn) {
-                            LaunchedEffect(Unit) {
-                                navController.navigate("admin") {
-                                    popUpTo("admin") { inclusive = true }
-                                    launchSingleTop = true
-                                }
+                        },
+                        onViewReceipt = { bId ->
+                            navController.navigate("receipt/$bId") {
+                                popUpTo("payment/$bId") { inclusive = true }
                             }
-                        } else {
-                            ProfileScreen(
-                                username = usernameArg,
-                                firebaseRepo = firebaseRepo,
-                                onProfileUpdated = { newUsername ->
-                                    if (newUsername != loggedInUser) {
-                                        loggedInUser = newUsername
-                                        navController.navigate("profile/$newUsername") {
-                                            popUpTo("profile/$usernameArg") { inclusive = true }
-                                            launchSingleTop = true
-                                        }
-                                    }
-                                }
-                            )
+                        },
+                        onViewInvoice = { bId ->
+                            navController.navigate("invoice/$bId") {
+                                popUpTo("payment/$bId") { inclusive = true }
+                            }
                         }
+                    )
+                }
+                composable("receipt/{bookingId}") { backStackEntry ->
+                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                    ReceiptScreen(
+                        bookingId = bookingId,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("invoice/{bookingId}") { backStackEntry ->
+                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                    InvoiceScreen(
+                        bookingId = bookingId,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser,
+                        onBack = { navController.popBackStack() },
+                        onViewReceipt = { bId ->
+                            navController.navigate("receipt/$bId") {
+                                popUpTo("invoice/$bId") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                composable("vouchers") {
+                    UserVouchersScreen(
+                        firebaseRepo = firebaseRepo,
+                        username = loggedInUser ?: "",
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("partner") {
+                    PartnerScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("profile/{username}") { backStackEntry ->
+                    val usernameArg = backStackEntry.arguments?.getString("username") ?: ""
+                    if (isAdminLoggedIn) {
+                        LaunchedEffect(Unit) {
+                            navController.navigate("admin") {
+                                popUpTo("admin") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    } else {
+                        ProfileScreen(
+                            username = usernameArg,
+                            firebaseRepo = firebaseRepo,
+                            onBack = { navController.popBackStack() },
+                            onProfileUpdated = { newUsername ->
+                                if (newUsername != loggedInUser) {
+                                    loggedInUser = newUsername
+                                    navController.navigate("profile/$newUsername") {
+                                        popUpTo("profile/$usernameArg") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+                        )
                     }
-                    composable("settings") {
-                        SettingsScreen(
-                            onNavigateToAdminReports = {
-                                navController.navigate("admin-reports") {
+                }
+                composable("settings") {
+                    SettingsScreen(
+                        onNavigateToAdminReports = {
+                            navController.navigate("admin-reports") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("about") {
+                    AboutUsScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("help") {
+                    HelpScreen(
+                        loggedInUser = loggedInUser,
+                        displayUsername = displayUsername,
+                        firebaseRepo = firebaseRepo,
+                        onBack = {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            } else {
+                                val target = if (loggedInUser != null) "dashboard/$loggedInUser" else "dashboard"
+                                navController.navigate(target) {
                                     launchSingleTop = true
                                 }
                             }
-                        )
-                    }
-                    composable("about") {
-                        AboutUsScreen()
-                    }
-                    composable("register") {
-                        RegisterScreen(
-                            firebaseRepo = firebaseRepo,
-                            onRegisterSuccess = { newUsername ->
-                                scope.launch {
-                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
-                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
-                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
-                                    isAdminLoggedIn = isAdmin
-                                    loggedInUser = newUsername
-                                    val destination = if (isAdmin) "admin" else "dashboard/$newUsername"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
-                                    }
+                        }
+                    )
+                }
+                composable("register") {
+                    RegisterScreen(
+                        firebaseRepo = firebaseRepo,
+                        onRegisterSuccess = { newUsername ->
+                            scope.launch {
+                                val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                isAdminLoggedIn = isAdmin
+                                loggedInUser = newUsername
+                                val destination = if (isAdmin) "admin" else "dashboard/$newUsername"
+                                navController.navigate(destination) {
+                                    popUpTo("home") { inclusive = true }
                                 }
-                            },
-                            onBackToLogin = {
-                                navController.popBackStack()
                             }
-                        )
-                    }
+                        },
+                        onBackToLogin = {
+                            navController.popBackStack()
+                        }
+                    )
                 }
             }
         }

@@ -1,6 +1,5 @@
 package com.example.appproject.ui.screens
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.tween
@@ -22,15 +21,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Male
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Wc
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -47,26 +53,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.appproject.R
 import com.example.appproject.data.model.User
 import com.example.appproject.data.repository.FirebaseRepository
+import com.example.appproject.ui.theme.PrimaryBlue
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ProfileScreen(
     username: String,
     firebaseRepo: FirebaseRepository,
+    onBack: () -> Unit = {},
     onProfileUpdated: (String) -> Unit = {}
 ) {
     var user by remember { mutableStateOf<User?>(null) }
-    var editableUsername by remember { mutableStateOf(username) }
+    var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("Male") }
     var errorMessage by remember { mutableStateOf("") }
     var successMessage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
@@ -78,9 +84,10 @@ fun ProfileScreen(
     LaunchedEffect(username) {
         user = firebaseRepo.getUser(username)
         user?.let {
-            editableUsername = it.username
+            fullName = it.name.ifBlank { it.username }
             email = it.email
             phone = it.phone
+            gender = if (it.gender.equals("Female", ignoreCase = true)) "Female" else "Male"
         }
     }
 
@@ -106,12 +113,24 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                SectionHeader(
-                    title = stringResource(R.string.profile),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.ExtraBold
-
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    SectionHeader(
+                        title = stringResource(R.string.my_information),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -130,31 +149,14 @@ fun ProfileScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         OutlinedTextField(
-                            value = editableUsername,
+                            value = fullName,
                             onValueChange = {
-                                editableUsername = it
+                                fullName = it
                                 errorMessage = ""
                                 successMessage = ""
                             },
-                            label = { Text(stringResource(R.string.username)) },
+                            label = { Text(stringResource(R.string.full_name)) },
                             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = {
-                                email = it
-                                errorMessage = ""
-                                successMessage = ""
-                            },
-                            label = { Text(stringResource(R.string.email)) },
-                            placeholder = { Text(stringResource(R.string.enter_email)) },
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp)
@@ -210,6 +212,96 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = {
+                                email = it
+                                errorMessage = ""
+                                successMessage = ""
+                            },
+                            label = { Text(stringResource(R.string.email)) },
+                            placeholder = { Text(stringResource(R.string.enter_email)) },
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Gender Selector
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Wc,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.gender),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                FilterChip(
+                                    selected = gender == "Male",
+                                    onClick = {
+                                        gender = "Male"
+                                        errorMessage = ""
+                                        successMessage = ""
+                                    },
+                                    label = { Text(stringResource(R.string.male), fontWeight = FontWeight.Bold) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Male,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryBlue.copy(alpha = 0.15f),
+                                        selectedLabelColor = PrimaryBlue,
+                                        selectedLeadingIconColor = PrimaryBlue
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FilterChip(
+                                    selected = gender == "Female",
+                                    onClick = {
+                                        gender = "Female"
+                                        errorMessage = ""
+                                        successMessage = ""
+                                    },
+                                    label = { Text(stringResource(R.string.female), fontWeight = FontWeight.Bold) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Female,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryBlue.copy(alpha = 0.15f),
+                                        selectedLabelColor = PrimaryBlue,
+                                        selectedLeadingIconColor = PrimaryBlue
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         if (errorMessage.isNotEmpty()) {
                             Text(
                                 text = errorMessage,
@@ -228,17 +320,18 @@ fun ProfileScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(28.dp))
 
                         Button(
                             onClick = {
-                                if (editableUsername.isBlank() || email.isBlank() || phone.isBlank()) {
+                                if (fullName.isBlank() || email.isBlank() || phone.isBlank()) {
                                     errorMessage = context.getString(R.string.error_fill_all_fields)
                                 } else {
                                     scope.launch {
                                         try {
                                             user?.let {
-                                                val newUsername = editableUsername.trim()
+                                                val cleanFullName = fullName.trim()
+                                                val derivedUsername = cleanFullName.split("\\s+".toRegex()).firstOrNull()?.ifBlank { "Traveler" } ?: "Traveler"
                                                 val newPhone = phone.trim()
                                                 val isPhoneChanged = it.phone != newPhone
 
@@ -248,9 +341,11 @@ fun ProfileScreen(
                                                 }
 
                                                 val updatedUser = it.copy(
-                                                    username = newUsername,
+                                                    name = cleanFullName,
+                                                    username = derivedUsername,
                                                     email = email.trim(),
                                                     phone = newPhone,
+                                                    gender = gender,
                                                     isPhoneVerified = if (isPhoneChanged) false else it.isPhoneVerified
                                                 )
                                                 firebaseRepo.saveUser(updatedUser)

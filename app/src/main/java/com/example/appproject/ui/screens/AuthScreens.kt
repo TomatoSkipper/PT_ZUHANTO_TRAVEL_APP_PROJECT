@@ -882,14 +882,16 @@ fun RegisterScreen(
                     return@launch
                 }
 
-                val finalUsername = username.ifBlank { email.trim().substringBefore("@").ifBlank { fullPhone } }
+                val fullName = name.trim()
+                val derivedFirstWord = fullName.split("\\s+".toRegex()).firstOrNull()?.ifBlank { email.trim().substringBefore("@") } ?: fullPhone
+                val finalUsername = derivedFirstWord.ifBlank { fullPhone }
                 val newUser = User(
                     uid = currentUserUid,
                     username = finalUsername,
                     email = email.trim(),
                     phone = fullPhone,
                     isPhoneVerified = isVerified,
-                    name = username.ifBlank { finalUsername }
+                    name = fullName
                 )
                 firebaseRepo.saveUser(newUser)
 

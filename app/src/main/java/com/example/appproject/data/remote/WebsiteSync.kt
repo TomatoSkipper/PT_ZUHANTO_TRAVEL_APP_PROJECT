@@ -923,7 +923,7 @@ fun getDefaultWebsitePromoTrips(context: Context? = null): List<TripPromo> {
             name = getString(R.string.labuan_bajo, "Labuan Bajo"),
             description = getString(R.string.labuan_gateway_komodo, "Gateway to Komodo"),
             price = "",
-            imageRes = R.drawable.bali,
+            imageRes = R.drawable.labuan_bajo_explore,
             subtext = safeAnnotatedStringHtml(
                 getString(
                     R.string.labuan_subtext_full,

@@ -43,8 +43,28 @@ class FirebaseRepository {
         }
     }
 
+    suspend fun ensureNewcomerVoucher() {
+        try {
+            val doc = vouchersCollection?.document("NEWCOMER")?.get()?.await()
+            if (doc == null || !doc.exists()) {
+                val newcomerData = mapOf(
+                    "code" to "NEWCOMER",
+                    "discountPercentage" to 10,
+                    "description" to "Special for new account",
+                    "startDate" to "",
+                    "endDate" to "",
+                    "backgroundPicture" to ""
+                )
+                vouchersCollection?.document("NEWCOMER")?.set(newcomerData)?.await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error ensuring newcomer voucher: ${e.message}")
+        }
+    }
+
     suspend fun saveUser(user: User) {
         try {
+            ensureNewcomerVoucher()
             val uid = user.uid.ifBlank { FirebaseAuth.getInstance().currentUser?.uid ?: "" }
             if (uid.isNotBlank()) {
                 val userToSave = if (user.uid.isBlank()) user.copy(uid = uid) else user
@@ -352,14 +372,37 @@ class FirebaseRepository {
     }
 
     suspend fun getVoucherData(code: String): Map<String, Any>? {
-        return try {
-            val snapshot = vouchersCollection?.document(code.trim().uppercase())?.get()?.await()
+        try {
+            ensureNewcomerVoucher()
+            val cleanCode = code.trim().uppercase()
+            val snapshot = vouchersCollection?.document(cleanCode)?.get()?.await()
             if (snapshot != null && snapshot.exists()) {
-                snapshot.data
-            } else null
+                return snapshot.data
+            }
+            if (cleanCode == "NEWCOMER") {
+                return mapOf(
+                    "code" to "NEWCOMER",
+                    "discountPercentage" to 10,
+                    "description" to "Special for new account",
+                    "startDate" to "",
+                    "endDate" to "",
+                    "backgroundPicture" to ""
+                )
+            }
+            return null
         } catch (e: Exception) {
             Log.e(TAG, "Error getting voucher: ${e.message}")
-            null
+            if (code.trim().equals("NEWCOMER", ignoreCase = true)) {
+                return mapOf(
+                    "code" to "NEWCOMER",
+                    "discountPercentage" to 10,
+                    "description" to "Special for new account",
+                    "startDate" to "",
+                    "endDate" to "",
+                    "backgroundPicture" to ""
+                )
+            }
+            return null
         }
     }
 
@@ -404,9 +447,33 @@ class FirebaseRepository {
 
     suspend fun getAllVouchers(): List<Map<String, Any>> {
         return try {
-            vouchersCollection?.get()?.await()?.documents?.mapNotNull { it.data } ?: emptyList()
+            ensureNewcomerVoucher()
+            val list = vouchersCollection?.get()?.await()?.documents?.mapNotNull { it.data } ?: emptyList()
+            if (list.none { it["code"]?.toString()?.equals("NEWCOMER", ignoreCase = true) == true }) {
+                listOf(
+                    mapOf(
+                        "code" to "NEWCOMER",
+                        "discountPercentage" to 10,
+                        "description" to "Special for new account",
+                        "startDate" to "",
+                        "endDate" to "",
+                        "backgroundPicture" to ""
+                    )
+                ) + list
+            } else {
+                list
+            }
         } catch (e: Exception) {
-            emptyList()
+            listOf(
+                mapOf(
+                    "code" to "NEWCOMER",
+                    "discountPercentage" to 10,
+                    "description" to "Special for new account",
+                    "startDate" to "",
+                    "endDate" to "",
+                    "backgroundPicture" to ""
+                )
+            )
         }
     }
 

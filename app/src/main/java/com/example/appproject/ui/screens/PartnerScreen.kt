@@ -37,8 +37,10 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -73,7 +75,9 @@ import com.example.appproject.ui.theme.NavyEnd
 import com.example.appproject.ui.theme.NavyStart
 
 @Composable
-fun PartnerScreen() {
+fun PartnerScreen(
+    onBack: () -> Unit = {}
+) {
     val adaptiveInfo = currentWindowAdaptiveInfo()
     val isExpanded = adaptiveInfo.windowSizeClass.windowWidthSizeClass != WindowWidthSizeClass.COMPACT
 
@@ -165,9 +169,21 @@ fun PartnerScreen() {
                             Brush.verticalGradient(
                                 colors = listOf(NavyStart, NavyEnd)
                             )
-                        ),
-                    contentAlignment = Alignment.Center
+                        )
                 ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .padding(top = 16.dp, start = 12.dp)
+                            .align(Alignment.TopStart)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center

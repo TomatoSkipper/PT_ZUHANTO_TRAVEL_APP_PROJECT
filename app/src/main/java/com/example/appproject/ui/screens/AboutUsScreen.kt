@@ -3,12 +3,18 @@ package com.example.appproject.ui.screens
 import android.content.Intent
 import android.graphics.PointF
 import android.net.Uri
+import android.view.MotionEvent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOutQuad
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,14 +47,22 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.window.core.layout.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +70,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -69,6 +84,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.text.TextStyle
 import coil.compose.AsyncImage
 import com.example.appproject.R
@@ -76,10 +94,24 @@ import com.example.appproject.data.model.CoreValue
 import com.example.appproject.data.model.Feature
 import com.example.appproject.data.model.ManagementMember
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.Dp
+import com.example.appproject.ui.theme.PrimaryBlue
+import com.example.appproject.ui.theme.PrimaryBlueDark
+import com.example.appproject.ui.theme.WarmAmberGold
+import compose.icons.FontAwesomeIcons
+import compose.icons.fontawesomeicons.Brands
+import compose.icons.fontawesomeicons.brands.Facebook
+import compose.icons.fontawesomeicons.brands.Instagram
+import compose.icons.fontawesomeicons.brands.Tiktok
 
 @Composable
-fun AboutUsScreen() {
+fun AboutUsScreen(
+    onBack: () -> Unit = {}
+) {
     val context = LocalContext.current
+    val adaptiveInfo = currentWindowAdaptiveInfo()
+    val isWideLayout = adaptiveInfo.windowSizeClass.windowWidthSizeClass != WindowWidthSizeClass.COMPACT
     val whatsappUrl = "https://api.whatsapp.com/send/?phone=628133315225&text=Hello+PT+ZUHANTO+TRAVEL+INDONESIA%2C+I+would+like+to+inquire+about+tour+packages+and+date+availability.+Thank+you.&type=phone_number&app_absent=0"
     
     var visible by remember { mutableStateOf(false) }
@@ -216,6 +248,19 @@ fun AboutUsScreen() {
                                 )
                             )
                     )
+
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .padding(top = 16.dp, start = 12.dp)
+                            .align(Alignment.TopStart)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
 
                     Column(
                         modifier = Modifier
@@ -375,7 +420,8 @@ fun AboutUsScreen() {
                     Spacer(modifier = Modifier.height(12.dp))
                 }
                 
-                Spacer(modifier = Modifier.height(100.dp))
+                Spacer(modifier = Modifier.height(40.dp))
+                ContactAndFooter(isWideLayout = isWideLayout)
             }
         }
     }
@@ -559,6 +605,297 @@ fun CoreValueItem(value: CoreValue) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ContactAndFooter(isWideLayout: Boolean) {
+    val navy = PrimaryBlueDark
+    val accent = WarmAmberGold
+    val cyan = Color(0xFF38BDF8)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(navy)
+            .padding(horizontal = if (isWideLayout) 64.dp else 20.dp, vertical = 40.dp)
+    ) {
+        if (isWideLayout) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(48.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ContactDetails(modifier = Modifier.weight(1f), accent = accent, cyan = cyan)
+                ContactPhoto(modifier = Modifier.weight(1f))
+            }
+        } else {
+            ContactDetails(accent = accent, cyan = cyan)
+            Spacer(modifier = height(24.dp))
+            ContactPhoto()
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 36.dp, bottom = 24.dp),
+            color = accent.copy(alpha = 0.5f)
+        )
+
+        if (isWideLayout) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                FooterBrand(modifier = Modifier.weight(1.3f), accent = accent, cyan = cyan)
+                FooterContact(modifier = Modifier.weight(1.1f), accent = accent, cyan = cyan)
+                FooterSocials(modifier = Modifier.weight(0.8f), accent = accent)
+            }
+        } else {
+            FooterBrand(accent = accent, cyan = cyan)
+            Spacer(modifier = height(20.dp))
+            FooterContact(accent = accent, cyan = cyan)
+            Spacer(modifier = height(20.dp))
+            FooterSocials(accent = accent)
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 28.dp, bottom = 16.dp),
+            color = Color.White.copy(alpha = 0.15f)
+        )
+        Text(
+            text = stringResource(R.string.copyright_text),
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.65f)
+        )
+    }
+}
+
+@Composable
+fun ContactDetails(modifier: Modifier = Modifier, accent: Color, cyan: Color) {
+    Column(modifier = modifier) {
+        Text(stringResource(R.string.start_your), style = MaterialTheme.typography.headlineSmall, fontFamily = FontFamily.Serif, color = Color.White)
+        Text(stringResource(R.string.dream_journey), style = MaterialTheme.typography.headlineSmall, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, color = accent)
+        Box(modifier = Modifier.padding(vertical = 10.dp).width(50.dp).height(3.dp).background(cyan, RoundedCornerShape(2.dp)))
+        Text(stringResource(R.string.contact_desc), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+        Spacer(modifier = height(16.dp))
+        FooterLine(Icons.Default.Place, stringResource(R.string.head_office), stringResource(R.string.head_office_location), cyan)
+        FooterLine(Icons.Default.Phone, stringResource(R.string.phone_transalate), "+62 813 3315 225", cyan)
+        FooterLine(Icons.Default.Email, stringResource(R.string.email_transalate), "info@ztiindo.id", cyan)
+        FooterLine(Icons.Default.Language, stringResource(R.string.website_transalate), "www.ztiindo.id", cyan)
+    }
+}
+
+@Composable
+fun ContactPhoto(modifier: Modifier = Modifier) {
+    Card(modifier = modifier.height(240.dp), shape = RoundedCornerShape(16.dp)) {
+        AsyncImage(model = R.drawable.officeimage, contentDescription = "Zuhanto Travel office", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+    }
+}
+
+@Composable
+fun FooterBrand(modifier: Modifier = Modifier, accent: Color, cyan: Color) {
+    Column(modifier = modifier) {
+        AsyncImage(model = R.drawable.zti_logo, contentDescription = "Zuhanto Travel logo", modifier = size(42.dp).background(Color.White, CircleShape).padding(6.dp), contentScale = ContentScale.Crop)
+        Spacer(modifier = height(10.dp))
+        Text("PT ZUHANTO TRAVEL\nINDONESIA", fontWeight = FontWeight.Bold, color = accent, style = MaterialTheme.typography.titleSmall)
+        Spacer(modifier = height(8.dp))
+        Text(stringResource(R.string.pt_zuhanto_desc), color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+fun FooterContact(modifier: Modifier = Modifier, accent: Color, cyan: Color) {
+    Column(modifier = modifier) {
+        Text(stringResource(R.string.contact_us_transalate), color = accent, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = height(12.dp))
+        FooterLine(Icons.Default.Place, "", stringResource(R.string.place), cyan)
+        FooterLine(Icons.Default.Phone, "", "+62 812 333 951–165", cyan)
+        FooterLine(Icons.Default.Email, "", "info@ztiindo.id", cyan)
+    }
+}
+
+@Composable
+fun FooterSocials(modifier: Modifier = Modifier, accent: Color) {
+    val context = LocalContext.current
+    Column(modifier = modifier) {
+        Text(stringResource(R.string.follow_us), color = accent, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Spacer(modifier = height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val socialLinks = listOf(
+                Triple("Instagram", FontAwesomeIcons.Brands.Instagram, "https://www.instagram.com/zuhantotravelindo"),
+                Triple("Facebook", FontAwesomeIcons.Brands.Facebook, "https://www.facebook.com/share/1MH9Q8RGc8/"),
+                Triple("TikTok", FontAwesomeIcons.Brands.Tiktok, "https://www.tiktok.com/@zuhantotravelindo")
+            )
+            socialLinks.forEach { (name, icon, url) ->
+                Surface(
+                    modifier = size(32.dp)
+                        .clickable {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        },
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.15f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Open $name",
+                            tint = Color.White,
+                            modifier = size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FooterLine(icon: ImageVector, label: String, value: String, tint: Color) {
+    Row(modifier = Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, modifier = size(16.dp), tint = tint)
+        Spacer(modifier = width(8.dp))
+        Column {
+            if (label.isNotEmpty()) Text(label, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+            Text(value, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun CategoryItem(
+    icon: ImageVector,
+    label: String,
+    iconSize: Dp = 52.dp,
+    onClick: () -> Unit = {}
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "scale"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = padding(6.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .motionEventSpy { event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> isPressed = true
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isPressed = false
+                }
+            }
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.35f)),
+            modifier = Modifier.size(iconSize),
+            shadowElevation = 2.dp
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = PrimaryBlue,
+                    modifier = Modifier.size(iconSize / 2.2f)
+                )
+            }
+        }
+        Spacer(modifier = height(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun ServiceItem(
+    title: String,
+    description: String,
+    icon: ImageVector = Icons.Default.Info,
+    modifier: Modifier = Modifier
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
+
+    Card(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { /* Action */ }
+            )
+            .motionEventSpy { event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> isPressed = true
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isPressed = false
+                }
+            },
+        shape = RoundedCornerShape(18.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = padding(14.dp).fillMaxWidth()
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = PrimaryBlue,
+                        modifier = size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = height(10.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue,
+                maxLines = 2,
+                lineHeight = 18.sp
+            )
+            Spacer(modifier = height(4.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+                lineHeight = 16.sp
+            )
         }
     }
 }

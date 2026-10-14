@@ -63,7 +63,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import com.example.appproject.data.model.TripPromo
+import com.example.appproject.data.remote.FetchPromoTripsFromWebsite
+import com.example.appproject.data.remote.getSavedPromoTrips
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.Locale
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -300,10 +306,10 @@ fun DashboardHomeScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     val iconSize = if (columnCount > 1) 64.dp else 52.dp
-                    CategoryItem(icon = Icons.Default.Hiking, label = stringResource(R.string.category_adventure), iconSize = iconSize, onClick = onBookNow)
-                    CategoryItem(icon = Icons.Default.BeachAccess, label = stringResource(R.string.category_beaches), iconSize = iconSize, onClick = onBookNow)
-                    CategoryItem(icon = Icons.Default.Festival, label = stringResource(R.string.category_cultural), iconSize = iconSize, onClick = onBookNow)
-                    CategoryItem(icon = Icons.Default.Forest, label = stringResource(R.string.category_nature), iconSize = iconSize, onClick = onBookNow)
+                    CategoryItem(icon = Icons.Default.Hiking, label = stringResource(R.string.category_adventure), iconSize = iconSize)
+                    CategoryItem(icon = Icons.Default.BeachAccess, label = stringResource(R.string.category_beaches), iconSize = iconSize)
+                    CategoryItem(icon = Icons.Default.Festival, label = stringResource(R.string.category_cultural), iconSize = iconSize)
+                    CategoryItem(icon = Icons.Default.Forest, label = stringResource(R.string.category_nature), iconSize = iconSize)
                 }
 
                 Spacer(modifier = height(28.dp))
@@ -482,6 +488,16 @@ fun DashboardHomeScreen(
 
                 Spacer(modifier = height(36.dp))
 
+                val context = LocalContext.current
+                var promoTrips by remember { mutableStateOf<List<TripPromo>>(emptyList()) }
+                LaunchedEffect(Unit) {
+                    promoTrips = withContext(Dispatchers.IO) { getSavedPromoTrips(context) }
+                    try {
+                        val fresh = FetchPromoTripsFromWebsite(context)
+                        if (fresh.isNotEmpty()) promoTrips = fresh
+                    } catch (_: Exception) {}
+                }
+
                 val featuredTrips: List<Triple<String, Int, Int>> = listOf(
                     Triple(stringResource(R.string.mount_bromo), R.drawable.mountbromo, R.string.mount_bromo_price),
                     Triple(stringResource(R.string.borobudur_temple), R.drawable.borobudurtemple, R.string.borobudur_temple_price),
@@ -523,6 +539,19 @@ fun DashboardHomeScreen(
                 ) { page ->
                     val actualIndex = page % featuredSize
                     val (name, imageRes, priceRes) = featuredTrips[actualIndex]
+                    val matchedPromo = promoTrips.find { promo ->
+                        promo.name.equals(name, ignoreCase = true)
+                    } ?: promoTrips.find { promo ->
+                        val pName = promo.name.lowercase(Locale.ROOT)
+                        val fName = name.lowercase(Locale.ROOT)
+                        pName.contains(fName) && !pName.contains("package") && !pName.contains("trip")
+                    }
+                    val livePrice = if (matchedPromo != null && matchedPromo.price.isNotBlank() && matchedPromo.price != "IDR 0") {
+                        matchedPromo.price
+                    } else {
+                        stringResource(priceRes)
+                    }
+
                     Card(
                         modifier = Modifier
                             .fillMaxSize()
@@ -546,7 +575,7 @@ fun DashboardHomeScreen(
                         border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.35f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                     ) {
-                        FeaturedTripContent(name, imageRes, priceRes, onBookNow)
+                        FeaturedTripContent(name, imageRes, livePrice, onBookNow)
                     }
                 }
 
@@ -776,8 +805,6 @@ fun DashboardHomeScreen(
         Spacer(modifier = height(36.dp))
 
         GuestStoriesCarousel(isWideLayout = columnCount > 1)
-        Spacer(modifier = height(40.dp))
-        ContactAndFooter(isWideLayout = columnCount > 1)
     }
 }
 
@@ -800,7 +827,7 @@ fun UserInfoRow(icon: ImageVector, label: String, value: String) {
 fun FeaturedTripContent(
     name: String,
     imageRes: Int,
-    priceRes: Int,
+    priceText: String,
     onBookNow: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -837,7 +864,7 @@ fun FeaturedTripContent(
                 color = PrimaryBlue
             ) {
                 Text(
-                    text = stringResource(priceRes),
+                    text = priceText,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
@@ -1139,294 +1166,6 @@ fun GuestStoriesCarousel(isWideLayout: Boolean = false) {
                         .background(indicatorColor)
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun ContactAndFooter(isWideLayout: Boolean) {
-    val navy = PrimaryBlueDark
-    val accent = WarmAmberGold
-    val cyan = Color(0xFF38BDF8)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(navy)
-            .padding(horizontal = if (isWideLayout) 64.dp else 20.dp, vertical = 40.dp)
-    ) {
-        if (isWideLayout) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(48.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ContactDetails(modifier = Modifier.weight(1f), accent = accent, cyan = cyan)
-                ContactPhoto(modifier = Modifier.weight(1f))
-            }
-        } else {
-            ContactDetails(accent = accent, cyan = cyan)
-            Spacer(modifier = height(24.dp))
-            ContactPhoto()
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(top = 36.dp, bottom = 24.dp),
-            color = accent.copy(alpha = 0.5f)
-        )
-
-        if (isWideLayout) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                FooterBrand(modifier = Modifier.weight(1.3f), accent = accent, cyan = cyan)
-                FooterContact(modifier = Modifier.weight(1.1f), accent = accent, cyan = cyan)
-                FooterSocials(modifier = Modifier.weight(0.8f), accent = accent)
-            }
-        } else {
-            FooterBrand(accent = accent, cyan = cyan)
-            Spacer(modifier = height(20.dp))
-            FooterContact(accent = accent, cyan = cyan)
-            Spacer(modifier = height(20.dp))
-            FooterSocials(accent = accent)
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(top = 28.dp, bottom = 16.dp),
-            color = Color.White.copy(alpha = 0.15f)
-        )
-        Text(
-            text = stringResource(R.string.copyright_text),
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.65f)
-        )
-    }
-}
-
-@Composable
-fun ContactDetails(modifier: Modifier = Modifier, accent: Color, cyan: Color) {
-    Column(modifier = modifier) {
-        Text(stringResource(R.string.start_your), style = MaterialTheme.typography.headlineSmall, fontFamily = FontFamily.Serif, color = Color.White)
-        Text(stringResource(R.string.dream_journey), style = MaterialTheme.typography.headlineSmall, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, color = accent)
-        Box(modifier = Modifier.padding(vertical = 10.dp).width(50.dp).height(3.dp).background(cyan, RoundedCornerShape(2.dp)))
-        Text(stringResource(R.string.contact_desc), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
-        Spacer(modifier = height(16.dp))
-        FooterLine(Icons.Default.Place, stringResource(R.string.head_office), stringResource(R.string.head_office_location), cyan)
-        FooterLine(Icons.Default.Phone, stringResource(R.string.phone_transalate), "+62 813 3315 225", cyan)
-        FooterLine(Icons.Default.Email, stringResource(R.string.email_transalate), "info@ztiindo.id", cyan)
-        FooterLine(Icons.Default.Language, stringResource(R.string.website_transalate), "www.ztiindo.id", cyan)
-    }
-}
-
-@Composable
-fun ContactPhoto(modifier: Modifier = Modifier) {
-    Card(modifier = modifier.height(240.dp), shape = RoundedCornerShape(16.dp)) {
-        AsyncImage(model = R.drawable.officeimage, contentDescription = "Zuhanto Travel office", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-    }
-}
-
-@Composable
-fun FooterBrand(modifier: Modifier = Modifier, accent: Color, cyan: Color) {
-    Column(modifier = modifier) {
-        AsyncImage(model = R.drawable.zti_logo, contentDescription = "Zuhanto Travel logo", modifier = size(42.dp).background(Color.White, CircleShape).padding(6.dp), contentScale = ContentScale.Crop)
-        Spacer(modifier = height(10.dp))
-        Text("PT ZUHANTO TRAVEL\nINDONESIA", fontWeight = FontWeight.Bold, color = accent, style = MaterialTheme.typography.titleSmall)
-        Spacer(modifier = height(8.dp))
-        Text(stringResource(R.string.pt_zuhanto_desc), color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
-fun FooterContact(modifier: Modifier = Modifier, accent: Color, cyan: Color) {
-    Column(modifier = modifier) {
-        Text(stringResource(R.string.contact_us_transalate), color = accent, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-        Spacer(modifier = height(12.dp))
-        FooterLine(Icons.Default.Place, "", stringResource(R.string.place), cyan)
-        FooterLine(Icons.Default.Phone, "", "+62 812 333 951–165", cyan)
-        FooterLine(Icons.Default.Email, "", "info@ztiindo.id", cyan)
-    }
-}
-
-@Composable
-fun FooterSocials(modifier: Modifier = Modifier, accent: Color) {
-    val context = LocalContext.current
-    Column(modifier = modifier) {
-        Text(stringResource(R.string.follow_us), color = accent, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-        Spacer(modifier = height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val socialLinks = listOf(
-                Triple("Instagram", FontAwesomeIcons.Brands.Instagram, "https://www.instagram.com/zuhantotravelindo"),
-                Triple("Facebook", FontAwesomeIcons.Brands.Facebook, "https://www.facebook.com/share/1MH9Q8RGc8/"),
-                Triple("TikTok", FontAwesomeIcons.Brands.Tiktok, "https://www.tiktok.com/@zuhantotravelindo")
-            )
-            socialLinks.forEach { (name, icon, url) ->
-                Surface(
-                    modifier = size(32.dp)
-                        .clickable {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                        },
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.15f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Open $name",
-                            tint = Color.White,
-                            modifier = size(16.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun FooterLine(icon: ImageVector, label: String, value: String, tint: Color) {
-    Row(modifier = Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, modifier = size(16.dp), tint = tint)
-        Spacer(modifier = width(8.dp))
-        Column {
-            if (label.isNotEmpty()) Text(label, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-            Text(value, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-fun CategoryItem(
-    icon: ImageVector,
-    label: String,
-    iconSize: Dp = 52.dp,
-    onClick: () -> Unit = {}
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "scale"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = padding(6.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .motionEventSpy { event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> isPressed = true
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isPressed = false
-                }
-            }
-    ) {
-        Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.35f)),
-            modifier = Modifier.size(iconSize),
-            shadowElevation = 2.dp
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = PrimaryBlue,
-                    modifier = Modifier.size(iconSize / 2.2f)
-                )
-            }
-        }
-        Spacer(modifier = height(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-fun ServiceItem(
-    title: String,
-    description: String,
-    icon: ImageVector = Icons.Default.Info,
-    modifier: Modifier = Modifier
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "scale"
-    )
-
-    Card(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { /* Action */ }
-            )
-            .motionEventSpy { event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> isPressed = true
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> isPressed = false
-                }
-            },
-        shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = padding(14.dp).fillMaxWidth()
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = PrimaryBlue,
-                        modifier = size(20.dp)
-                    )
-                }
-            }
-            Spacer(modifier = height(10.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryBlue,
-                maxLines = 2,
-                lineHeight = 18.sp
-            )
-            Spacer(modifier = height(4.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                lineHeight = 16.sp
-            )
         }
     }
 }

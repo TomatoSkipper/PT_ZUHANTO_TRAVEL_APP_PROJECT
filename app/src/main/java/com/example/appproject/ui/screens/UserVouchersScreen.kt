@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -30,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -83,7 +86,11 @@ fun Modifier.dashedBorder(
 }
 
 @Composable
-fun UserVouchersScreen(firebaseRepo: FirebaseRepository, username: String) {
+fun UserVouchersScreen(
+    firebaseRepo: FirebaseRepository,
+    username: String,
+    onBack: () -> Unit = {}
+) {
     var vouchersWithStatus by remember { mutableStateOf<List<VoucherStatus>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -95,9 +102,9 @@ fun UserVouchersScreen(firebaseRepo: FirebaseRepository, username: String) {
             mapOf(
                 "code" to "NEWCOMER",
                 "discountPercentage" to "10",
-                "description" to "Special for new account",
-                "startDate" to "01 Jan 2026",
-                "endDate" to "31 Oct 2026"
+                "description" to (R.string.newcomer_voucher_description),
+                "startDate" to "",
+                "endDate" to ""
             )
         )
 
@@ -127,7 +134,20 @@ fun UserVouchersScreen(firebaseRepo: FirebaseRepository, username: String) {
             .fillMaxSize()
             .padding(20.dp)
     ) {
-        SectionHeader(title = stringResource(R.string.available_promo_vouchers))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            SectionHeader(title = stringResource(R.string.available_promo_vouchers))
+        }
 
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -358,7 +378,7 @@ fun VoucherCardItem(status: VoucherStatus) {
                     val validText = when {
                         end.isNotBlank() -> stringResource(R.string.valid_until, end)
                         start.isNotBlank() -> "Valid from $start"
-                        else -> "Valid until 31 Oct 2026"
+                        else -> stringResource(R.string.no_expiration)
                     }
 
                     Row(

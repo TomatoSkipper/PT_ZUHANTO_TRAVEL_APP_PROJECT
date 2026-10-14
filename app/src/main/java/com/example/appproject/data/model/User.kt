@@ -28,5 +28,8 @@ data class User(
     val isPhoneVerified: Boolean = false,
 
     @get:PropertyName("name")
-    val name: String = ""
+    val name: String = "",
+
+    @get:PropertyName("gender")
+    val gender: String = ""
 )

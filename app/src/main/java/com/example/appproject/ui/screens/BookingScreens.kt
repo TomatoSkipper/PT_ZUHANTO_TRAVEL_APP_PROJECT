@@ -112,13 +112,15 @@ fun MyBookingsScreen(
     firebaseRepo: FirebaseRepository,
     onViewReceipt: (String) -> Unit,
     onViewInvoice: (String) -> Unit,
-    onPayNow: ((String) -> Unit)? = null
+    onPayNow: ((String) -> Unit)? = null,
+    onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var bookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
     var bookingToCancel by remember { mutableStateOf<Booking?>(null) }
     var bookingToPay by remember { mutableStateOf<Booking?>(null) }
     var showRefundNotice by remember { mutableStateOf(false) }
+    var showDeletedNotice by remember { mutableStateOf(false) }
     var connectionStatus by remember { mutableStateOf("Connected") }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -145,7 +147,20 @@ fun MyBookingsScreen(
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        SectionHeader(title = stringResource(R.string.my_bookings))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            SectionHeader(title = stringResource(R.string.my_bookings))
+        }
         
         if (connectionStatus != "Connected") {
             Surface(
@@ -262,16 +277,25 @@ fun MyBookingsScreen(
     }
 
     bookingToCancel?.let { booking ->
+        val isConfirmed = normalizeBookingStatus(booking.status) == "Confirmed"
+        val isPaid = normalizePaymentStatus(booking.paymentStatus) == "Paid"
+        val shouldDelete = !isConfirmed && !isPaid
+
         AlertDialog(
             onDismissRequest = { bookingToCancel = null },
             title = { Text("${stringResource(R.string.cancel_booking)}?") },
             text = {
                 Text(
                     text = buildAnnotatedString {
-                        append("${stringResource(R.string.confirmation_cancel_booking)} ${booking.destination}?\n\n")
+                        if (!shouldDelete) {
+                            append("${stringResource(R.string.confirmation_cancel_booking)} ${booking.destination}?\n\n")
 
-                        withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
-                            append("${stringResource(R.string.cancel_terms)}*")
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
+                                append("${stringResource(R.string.cancel_terms)}*")
+                            }
+                        } else {
+                            append("${stringResource(R.string.confirmation_cancel_booking)} ${booking.destination}?\n\n")
+                            append("Since this booking has not been confirmed by the admin yet and has not been paid, cancelling it will delete it from the database.")
                         }
                     }
                 )
@@ -280,11 +304,18 @@ fun MyBookingsScreen(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            val cancelledBooking = booking.copy(status = "Cancelled")
-                            firebaseRepo.updateBooking(cancelledBooking)
-                            bookings = bookings.map { if (it.bookingId == cancelledBooking.bookingId) cancelledBooking else it }
-                            bookingToCancel = null
-                            showRefundNotice = true
+                            if (!shouldDelete) {
+                                val cancelledBooking = booking.copy(status = "Cancelled")
+                                firebaseRepo.updateBooking(cancelledBooking)
+                                bookings = bookings.map { if (it.bookingId == cancelledBooking.bookingId) cancelledBooking else it }
+                                bookingToCancel = null
+                                showRefundNotice = true
+                            } else {
+                                firebaseRepo.deleteBooking(booking.bookingId)
+                                bookings = bookings.filter { it.bookingId != booking.bookingId }
+                                bookingToCancel = null
+                                showDeletedNotice = true
+                            }
                         }
                     }
                 ) {
@@ -306,6 +337,19 @@ fun MyBookingsScreen(
             text = { Text(stringResource(R.string.refund)) },
             confirmButton = {
                 TextButton(onClick = { showRefundNotice = false }) {
+                    Text("OKAY")
+                }
+            }
+        )
+    }
+
+    if (showDeletedNotice) {
+        AlertDialog(
+            onDismissRequest = { showDeletedNotice = false },
+            title = { Text(stringResource(R.string.booking_deleted_successfully)) },
+            text = { Text("The unconfirmed booking has been successfully cancelled and deleted from the database.") },
+            confirmButton = {
+                TextButton(onClick = { showDeletedNotice = false }) {
                     Text("OKAY")
                 }
             }

@@ -264,7 +264,7 @@
     <string name="follow_us">IKUTI KAMI</string>
     <string name="phone_transalate">Telefon</string>
     <string name="email_transalate">Emel</string>
-    <string name="my_bookings">Tempahan Saya</string>
+    <string name="my_bookings">Tempahan</string>
     <string name="available_vouchers">Baucar Tersedia</string>
     <string name="user_account">Akaun Pengguna</string>
     <string name="reset_password">Tetap Semula Kata Laluan</string>
@@ -468,7 +468,7 @@
     <string name="bromo_sunrise_subtext">PT Zuhanto Travel Indonesia menawarkan perjalanan peribadi ke Gunung Bromo, menampilkan pemandangan matahari terbit yang ikonik, lautan pasir yang luas, serta panorama pergunungan yang memukau. Ia direka khusus untuk keselesaan, fleksibiliti, dan kumpulan persendirian.</string>
 
     <!-- Promo Trips Localization -->
-    <string name="pkg_tumpak_sewu_title">Pakej Tumpak Sewu</string>
+    <string name="pkg_tumpak_sewu_title">Tumpak Sewu Trip</string>
     <string name="pkg_tumpak_sewu_desc_full">Trip Pengembaraan Air Terjun Satu Hari</string>
     <string name="pkg_tumpak_sewu_subtext_full">Terokai Niagara Indonesia dalam pengembaraan seharian penuh. Trekking yang mencabar, pemandangan epik, dan pengalaman tidak dapat dilupakan di Air Terjun Tumpak Sewu.</string>
     <string name="duration_1d_19h">1 Hari (±19 Jam)</string>
@@ -529,7 +529,7 @@
     <string name="itin_jogja_day2_s2">Membeli-belah Cenderamata di Malioboro</string>
     <string name="itin_jogja_day2_s3">Pemindahan Keluar</string>
 
-    <string name="pkg_mount_rinjani_title">Pendakian Gunung Rinjani</string>
+    <string name="pkg_mount_rinjani_title">Mount Rinjani Trekking 2026</string>
     <string name="pkg_mount_rinjani_desc_full">Ekspedisi Gunung Ulung 7H6M</string>
     <string name="pkg_mount_rinjani_subtext_full">Gunung Rinjani (3,726m) ialah ekosistem pengembaraan yang lengkap. Program 7 hari ini direka untuk memberi anda pengalaman puncak sepenuhnya tanpa tergesa-gesa.</string>
     <string name="duration_one_day">1 Hari</string>
@@ -573,7 +573,7 @@
     <string name="exc_travel_insurance">Insurans Perjalanan</string>
     <string name="exc_flight_tickets">Tiket Penerbangan</string>
 
-    <string name="pkg_yogyakarta_title">Trip Yogyakarta</string>
+    <string name="pkg_yogyakarta_title">Trip Yogyakarta 2D1N</string>
     <string name="pkg_yogyakarta_desc_full">2H1M Kebudayaan, Warisan &amp; Pengembaraan Merapi</string>
     <string name="pkg_yogyakarta_subtext_full">Terokai budaya kaya Yogyakarta, jalan Malioboro, dan pengembaraan Jeep Merapi yang menyeronokkan dengan kemudahan lengkap.</string>
     <string name="transport_medium_bus">Bas Sederhana</string>
@@ -760,7 +760,7 @@
     <string name="submit_a_problem">Hantar Laporan Masalah</string>
     <string name="describe_issue">Huraikan masalah anda dan lampirkan tangkapan skrin untuk penyelesaian pantas.</string>
     <string name="booking_issue">Masalah Tempahan</string>
-    <string name="app_bug">Bug Aplikasi</string>
+    <string name="app_bug">Pepijat Aplikasi</string>
     <string name="payment">Pembayaran</string>
     <string name="general_inquiry">Pertanyaan Umum</string>
     <string name="other">Lain-lain</string>
@@ -787,7 +787,10 @@
     <string name="where_would_you_like_to_go">Anda ingin pergi ke mana?</string>
     <string name="search_destination">Cari Bali, Bromo, Labuan Bajo, Raja Ampat...</string>
     <string name="explore">TEROKAI</string>
-    <string name="my_account">AKAUN SAYA</string>
+    <string name="my_account">Akaun</string>
+    <string name="help">Bantuan</string>
+    <string name="help_and_support">Bantuan &amp; Sokongan</string>
+    <string name="trip_inquiry_response_time">Pasukan kami akan memberi maklum balas dalam tempoh 24 jam</string>
     <string name="admin_controls">TETAPAN PENTADBIR</string>
     <string name="info_and_settings">MAKLUMAT &amp; TETAPAN</string>
     <string name="ready_for_your_next_trip">Bersedia untuk perjalanan anda yang seterusnya</string>
@@ -837,5 +840,15 @@
     <string name="enter_resolution_or_response">Masukkan penyelesaian atau maklum balas</string>
     <string name="feedback_updated_successfully">Maklum balas berjaya dikemaskini</string>
     <string name="save_feedback">Simpan Maklum Balas</string>
+    <string name="no_expiration">Tiada tarikh luput</string>
+    <string name="newcomer_voucher_description">Khas untuk akaun baharu</string>
+    <string name="my_details">BUTIRAN SAYA</string>
+    <string name="personal_information">Maklumat Peribadi</string>
+    <string name="my_information">Maklumat Saya</string>
+    <string name="full_name">Nama Penuh</string>
+    <string name="gender">Jantina</string>
+    <string name="male">Lelaki</string>
+    <string name="female">Perempuan</string>
+    <string name="select_gender">Pilih Jantina</string>
 
 </resources>

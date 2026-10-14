@@ -262,7 +262,7 @@
     <string name="contact_us_transalate">CONTACT US</string>
     <string name="place">High Point Service Apartment Siwalankerto Timur 161–165 Surabaya, Indonesia</string>
     <string name="follow_us">FOLLOW US</string>
-    <string name="my_bookings">My Bookings</string>
+    <string name="my_bookings">Bookings</string>
     <string name="available_vouchers">Available Vouchers</string>
     <string name="user_account">User Account</string>
     <string name="reset_password">Reset Password</string>
@@ -464,7 +464,7 @@
     <string name="bromo_sunrise_subtext">PT Zuhanto Travel Indonesia offers a private journey to Mount Bromo, featuring its iconic sunrise, vast sand sea, and breathtaking mountain scenery. Designed for comfort, flexibility, and private groups.</string>
 
     <!-- Promo Trips Localization -->
-    <string name="pkg_tumpak_sewu_title">Tumpak Sewu Package</string>
+    <string name="pkg_tumpak_sewu_title">Tumpak Sewu Trip</string>
     <string name="pkg_tumpak_sewu_desc_full">One Day Waterfall Adventure Trip</string>
     <string name="pkg_tumpak_sewu_subtext_full">Explore Indonesia\'s Niagara in a full day of adventure. Challenging trekking, epic views, and unforgettable experiences at Tumpak Sewu Waterfall.</string>
     <string name="duration_1d_19h">1 Day (±19 Hours)</string>
@@ -525,7 +525,7 @@
     <string name="itin_jogja_day2_s2">Malioboro Souvenir Shopping</string>
     <string name="itin_jogja_day2_s3">Transfer Out</string>
 
-    <string name="pkg_mount_rinjani_title">Mount Rinjani Trekking</string>
+    <string name="pkg_mount_rinjani_title">Mount Rinjani Trekking 2026</string>
     <string name="pkg_mount_rinjani_desc_full">7D6N Ultimate Mountain Expedition</string>
     <string name="pkg_mount_rinjani_subtext_full">Mount Rinjani (3,726m) is a complete ecosystem of adventure. This 7-day program is designed to give you the full summit experience without rushing.</string>
     <string name="duration_one_day">1 Day</string>
@@ -569,7 +569,7 @@
     <string name="exc_travel_insurance">Travel Insurance</string>
     <string name="exc_flight_tickets">Flight Tickets</string>
 
-    <string name="pkg_yogyakarta_title">Yogyakarta Trip</string>
+    <string name="pkg_yogyakarta_title">Trip Yogyakarta 2D1N</string>
     <string name="pkg_yogyakarta_desc_full">2D1N Culture, Heritage &amp; Merapi Adventure</string>
     <string name="pkg_yogyakarta_subtext_full">Explore Yogyakarta\'s rich culture, Malioboro street, and exciting Merapi Jeep adventure with complete facilities.</string>
     <string name="transport_medium_bus">Medium Bus</string>
@@ -782,7 +782,10 @@
     <string name="where_would_you_like_to_go">Where would you like to go?</string>
     <string name="search_destination">Search Bali, Bromo, Labuan Bajo, Raja Ampat...</string>
     <string name="explore">EXPLORE</string>
-    <string name="my_account">MY ACCOUNT</string>
+    <string name="my_account">Account</string>
+    <string name="help">Help</string>
+    <string name="help_and_support">Help &amp; Support</string>
+    <string name="trip_inquiry_response_time">Our team will respond within 24 hours</string>
     <string name="admin_controls">ADMIN CONTROLS</string>
     <string name="info_and_settings">INFO &amp; SETTINGS</string>
     <string name="ready_for_your_next_trip">Ready for your next trip</string>
@@ -832,5 +835,15 @@
     <string name="enter_resolution_or_response">Enter resolution or response</string>
     <string name="feedback_updated_successfully">Feedback updated successfully</string>
     <string name="save_feedback">Save Feedback</string>
+    <string name="no_expiration">No expiration date</string>
+    <string name="newcomer_voucher_description">Special for new account</string>
+    <string name="my_details">MY DETAILS</string>
+    <string name="personal_information">Personal Information</string>
+    <string name="my_information">My Information</string>
+    <string name="full_name">Full Name</string>
+    <string name="gender">Gender</string>
+    <string name="male">Male</string>
+    <string name="female">Female</string>
+    <string name="select_gender">Select Gender</string>
 
 </resources>
