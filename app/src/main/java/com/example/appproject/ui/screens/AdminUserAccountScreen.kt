@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -33,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import com.example.appproject.ui.components.AdminListItemSkeleton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -102,43 +102,21 @@ fun AdminUsersScreen(firebaseRepo: FirebaseRepository) {
         ) {
             // Top Header & Title
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.user_accounts),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (connectionStatus == "Connected") stringResource(R.string.synced_and_connected) else connectionStatus,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-                    OutlinedCard(
-                        onClick = {
-                            scope.launch {
-                                isLoading = true
-                                connectionStatus = firebaseRepo.testConnection()
-                                users = firebaseRepo.getAllUsers()
-                                isLoading = false
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.size(44.dp),
-                        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color(0xFF334155))
-                        }
-                    }
+                    Text(
+                        text = stringResource(R.string.user_accounts),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (connectionStatus == "Connected") stringResource(R.string.synced_and_connected) else connectionStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF64748B)
+                    )
                 }
             }
 
@@ -213,7 +191,11 @@ fun AdminUsersScreen(firebaseRepo: FirebaseRepository) {
             }
 
             // User Cards List
-            if (filteredUsers.isEmpty()) {
+            if (isLoading) {
+                items(4) {
+                    AdminListItemSkeleton(modifier = Modifier.padding(bottom = 10.dp))
+                }
+            } else if (filteredUsers.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(24.dp).heightIn(min = 200.dp),
@@ -228,8 +210,7 @@ fun AdminUsersScreen(firebaseRepo: FirebaseRepository) {
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = if (isLoading) stringResource(R.string.loading_user_accounts)
-                                else if (connectionStatus != "Connected") stringResource(R.string.sync_failed, connectionStatus)
+                                text = if (connectionStatus != "Connected") stringResource(R.string.sync_failed, connectionStatus)
                                 else if (users.isEmpty()) stringResource(R.string.no_user_accounts_found)
                                 else stringResource(R.string.no_matching_user_accounts),
                                 style = MaterialTheme.typography.titleMedium,

@@ -19,6 +19,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,19 +36,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberDrawerState
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -70,7 +85,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,7 +98,8 @@ import com.example.appproject.data.model.isUserAdmin
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.ui.screens.AboutUsScreen
-import com.example.appproject.ui.screens.AdminReportsScreen
+import com.example.appproject.ui.screens.AdminHelpDetailScreen
+import com.example.appproject.ui.screens.AdminHelpScreen
 import com.example.appproject.ui.screens.AdminScreen
 import com.example.appproject.ui.screens.AdminUsersScreen
 import com.example.appproject.ui.screens.AdminVouchersScreen
@@ -269,81 +284,225 @@ fun AppNavigationDrawer() {
         }
     }
 
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
     if (showSplash) {
         SplashWithCircularLogo(onSplashFinished = { showSplash = false })
     } else {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    title = {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                if (isAdminLoggedIn) {
+                    ModalDrawerSheet(
+                        modifier = Modifier.width(250.dp)
+                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                shadowElevation = 3.dp,
-                                color = Color.White,
-                                modifier = Modifier.size(38.dp)
+                                color = PrimaryBlue,
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.zti_logo),
-                                        contentDescription = "PT Zuhanto Travel Logo",
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier.size(28.dp)
+                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color.White)
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(text = "Administrator", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                Text(text = displayUsername ?: "Admin", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null) },
+                            label = { Text(stringResource(R.string.admin_dashboard)) },
+                            selected = currentRoute == "admin",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("admin") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.ConfirmationNumber, contentDescription = null) },
+                            label = { Text(stringResource(R.string.manage_vouchers)) },
+                            selected = currentRoute == "admin-vouchers",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("admin-vouchers") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                            label = { Text(stringResource(R.string.user_accounts)) },
+                            selected = currentRoute == "admin-users",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("admin-users") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },
+                            label = { Text(stringResource(R.string.help_requests)) },
+                            selected = currentRoute == "admin-help",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("admin-help") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                            label = { Text(stringResource(R.string.settings)) },
+                            selected = currentRoute == "settings",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("settings") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            label = { Text(stringResource(R.string.logout), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                            selected = false,
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                loggedInUser = null
+                                isAdminLoggedIn = false
+                                displayUsername = null
+                                sessionPreferences.edit().remove("signed_in_username").apply()
+                                FirebaseAuth.getInstance().signOut()
+                                navController.navigate("dashboard") {
+                                    popUpTo(0) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        navigationIcon = {
+                            if (isAdminLoggedIn) {
+                                androidx.compose.material3.IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                    Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.open_drawer))
+                                }
+                            }
+                        },
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.clickable {
+                                    val target = if (loggedInUser != null) "dashboard/$loggedInUser" else "dashboard"
+                                    if (currentRoute != target) {
+                                        navController.navigate(target) {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                }
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    shadowElevation = 3.dp,
+                                    color = Color.White,
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.zti_logo),
+                                            contentDescription = "PT Zuhanto Travel Logo",
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
+                                }
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.company_name_zuhanto),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontSize = 15.sp,
+                                        fontFamily = FontFamily.SansSerif,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryBlue
+                                    )
+                                    Text(
+                                        text = "INDONESIA",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        fontFamily = FontFamily.SansSerif,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFE11D48)
                                     )
                                 }
                             }
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.company_name_zuhanto),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontSize = 15.sp,
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PrimaryBlue
-                                )
-                                Text(
-                                    text = "INDONESIA",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFE11D48)
-                                )
+                        },
+                        actions = {
+                            if (loggedInUser == null) {
+                                Button(
+                                    onClick = {
+                                        navController.navigate("home") {
+                                            launchSingleTop = true
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PrimaryBlue,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(20.dp),
+                                    modifier = Modifier.padding(end = 8.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(stringResource(R.string.login), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
                             }
                         }
-                    },
-                    actions = {
-                        if (loggedInUser == null) {
-                            Button(
-                                onClick = {
-                                    navController.navigate("home") {
-                                        launchSingleTop = true
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryBlue,
-                                    contentColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(20.dp),
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(stringResource(R.string.login), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                        }
-                    }
-                )
-            },
-            bottomBar = {
-                if (currentRoute?.startsWith("trip-detail/") != true) {
+                    )
+                },
+                bottomBar = {
+                    if (!isAdminLoggedIn && currentRoute?.startsWith("trip-detail/") != true) {
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface,
                         tonalElevation = 8.dp
@@ -402,21 +561,17 @@ fun AppNavigationDrawer() {
                         NavigationBarItem(
                             selected = isBookingsSelected,
                             onClick = {
-                                if (loggedInUser != null && !isAdminLoggedIn) {
-                                    val target = "bookings/$loggedInUser"
-                                    if (currentRoute != target) {
-                                        navController.navigate(target) {
-                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
+                                val target = if (loggedInUser != null && !isAdminLoggedIn) "bookings/$loggedInUser" else "bookings/guest"
+                                if (currentRoute != target) {
+                                    navController.navigate(target) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                } else {
-                                    navController.navigate("home") { launchSingleTop = true }
                                 }
                             },
                             icon = { Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Bookings") },
-                            label = { Text(stringResource(R.string.my_bookings)) },
+                            label = { Text(stringResource(R.string.bookings)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = PrimaryBlue,
                                 selectedTextColor = PrimaryBlue,
@@ -448,10 +603,13 @@ fun AppNavigationDrawer() {
                             selected = isMyAccountSelected,
                             onClick = {
                                 if (currentRoute != "myaccount") {
-                                    navController.navigate("myaccount") {
-                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    val popped = navController.popBackStack("myaccount", false)
+                                    if (!popped) {
+                                        navController.navigate("myaccount") {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
                                 }
                             },
@@ -551,11 +709,8 @@ fun AppNavigationDrawer() {
                         isAdminLoggedIn = isAdminLoggedIn,
                         firebaseRepo = firebaseRepo,
                         onNavigateToBookings = {
-                            if (loggedInUser != null) {
-                                navController.navigate("bookings/$loggedInUser") { launchSingleTop = true }
-                            } else {
-                                navController.navigate("home") { launchSingleTop = true }
-                            }
+                            val target = if (loggedInUser != null) "bookings/$loggedInUser" else "bookings/guest"
+                            navController.navigate(target) { launchSingleTop = true }
                         },
                         onNavigateToVouchers = {
                             navController.navigate("vouchers") { launchSingleTop = true }
@@ -578,9 +733,6 @@ fun AppNavigationDrawer() {
                         },
                         onNavigateToHelp = {
                             navController.navigate("help") { launchSingleTop = true }
-                        },
-                        onNavigateToAdmin = {
-                            navController.navigate("admin") { launchSingleTop = true }
                         },
                         onNavigateToLogin = {
                             navController.navigate("home") { launchSingleTop = true }
@@ -649,9 +801,43 @@ fun AppNavigationDrawer() {
                         )
                     }
                 }
-                composable("admin-reports") {
+                composable("admin-help") {
                     if (isAdminLoggedIn) {
-                        AdminReportsScreen(firebaseRepo = firebaseRepo)
+                        AdminHelpScreen(
+                            firebaseRepo = firebaseRepo,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToDetail = { requestId ->
+                                navController.navigate("admin-help-detail/$requestId")
+                            }
+                        )
+                    } else {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
+                    }
+                }
+                composable("admin-help-detail/{requestId}") { backStackEntry ->
+                    val requestId = backStackEntry.arguments?.getString("requestId") ?: ""
+                    if (isAdminLoggedIn) {
+                        AdminHelpDetailScreen(
+                            requestId = requestId,
+                            firebaseRepo = firebaseRepo,
+                            onBack = { navController.popBackStack() }
+                        )
                     } else {
                         LoginScreen(
                             firebaseRepo = firebaseRepo,
@@ -724,7 +910,20 @@ fun AppNavigationDrawer() {
                 }
                 composable("bookings/{username}") { backStackEntry ->
                     val username = backStackEntry.arguments?.getString("username") ?: ""
-                    if (loggedInUser == null || loggedInUser != username || isAdminLoggedIn) {
+                    val isGuest = loggedInUser == null || username == "guest"
+                    if (isGuest) {
+                        MyBookingsScreen(
+                            username = "guest",
+                            firebaseRepo = firebaseRepo,
+                            onViewReceipt = {},
+                            onViewInvoice = {},
+                            onBack = { navController.popBackStack() },
+                            isGuest = true,
+                            onLoginClick = {
+                                navController.navigate("home") { launchSingleTop = true }
+                            }
+                        )
+                    } else if (loggedInUser == null || loggedInUser != username || isAdminLoggedIn) {
                         LoginScreen(
                             firebaseRepo = firebaseRepo,
                             onLoginSuccess = { user ->
@@ -748,6 +947,7 @@ fun AppNavigationDrawer() {
                         MyBookingsScreen(
                             username = username,
                             firebaseRepo = firebaseRepo,
+                            isGuest = false,
                             onViewReceipt = { bId ->
                                 navController.navigate("receipt/$bId")
                             },
@@ -901,6 +1101,7 @@ fun AppNavigationDrawer() {
                 }
             }
         }
+      }
     }
 }
 

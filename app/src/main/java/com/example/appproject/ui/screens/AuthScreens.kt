@@ -33,9 +33,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import com.example.appproject.ui.theme.PrimaryBlue
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
@@ -52,6 +54,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -64,6 +68,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -141,25 +146,41 @@ fun CountryCodePhoneInput(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Icon(
-                            imageVector = if (dropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                            imageVector = if (dropdownExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = "Select Country Code",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = PrimaryBlue
                         )
                     }
 
                     DropdownMenu(
                         expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false }
+                        onDismissRequest = { dropdownExpanded = false },
+                        modifier = Modifier.background(Color.White)
                     ) {
                         defaultCountryCodes.forEach { country ->
+                            val isSelected = selectedCountry == country
                             DropdownMenuItem(
                                 text = {
-                                    Text("${country.flag} ${country.countryName} (${country.code})")
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "${country.flag} ${country.countryName} (${country.code})",
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) PrimaryBlue else Color(0xFF0F172A)
+                                        )
+                                        if (isSelected) {
+                                            Icon(Icons.Default.Check, contentDescription = null, tint = PrimaryBlue)
+                                        }
+                                    }
                                 },
                                 onClick = {
                                     onCountrySelected(country)
                                     dropdownExpanded = false
-                                }
+                                },
+                                modifier = Modifier.background(if (isSelected) PrimaryBlue.copy(alpha = 0.1f) else Color.Transparent)
                             )
                         }
                     }
@@ -440,9 +461,13 @@ fun LoginScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+    ) {
         AsyncImage(
-            model = R.drawable.backgroundmountainlogin,
+            model = R.drawable.borobudur_temple_explore,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -451,74 +476,108 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.25f),
+                            Color.Black.copy(alpha = 0.55f),
+                            Color.Black.copy(alpha = 0.85f)
+                        )
+                    )
+                )
         )
 
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = tween(600)) + slideInVertically(
-                initialOffsetY = { it / 10 },
-                animationSpec = tween(600, easing = EaseOutBack)
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Top Header Section (Logo badge, Welcome back, Subtitle)
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 36.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Card(
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    modifier = Modifier.size(100.dp),
+                    modifier = Modifier.size(88.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Image(
                             painter = painterResource(id = R.drawable.zti_logo),
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize().padding(12.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(14.dp),
                             contentScale = ContentScale.Fit
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
                     text = stringResource(R.string.welcome_back),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = Color.White,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                Card(
-                    modifier = Modifier.fillMaxWidth().widthIn(max = 500.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                Text(
+                    text = stringResource(R.string.login_to_manage_your_trips_and_bookings),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            // Bottom White Card
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                color = Color.White,
+                shadowElevation = 16.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 36.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    // Log in header
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = stringResource(R.string.login),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0F172A)
                         )
+                        Text(
+                            text = stringResource(R.string.sign_in_using_phone_number_or_google),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B)
+                        )
+                    }
 
-                        Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Phone number section
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.phone_number),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
 
                         CountryCodePhoneInput(
                             phoneValue = phoneInput,
@@ -529,182 +588,197 @@ fun LoginScreen(
                             selectedCountry = selectedCountry,
                             onCountrySelected = { selectedCountry = it },
                             enabled = !isTacSent,
-                            label = stringResource(R.string.phone),
+                            label = "",
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
 
-                        if (isTacSent) {
-                            Spacer(modifier = Modifier.height(16.dp))
+                    // Helper text with padlock
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.tac_helper_text),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF64748B)
+                        )
+                    }
 
-                            OutlinedTextField(
-                                value = tacCode,
-                                onValueChange = {
-                                    if (it.length <= 6) tacCode = it
-                                    errorMessage = ""
-                                },
-                                label = { Text("6-Digit TAC Code") },
-                                placeholder = { Text("Enter TAC") },
-                                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth().testTag("tacInput"),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                        }
-
-                        if (errorMessage.isNotEmpty()) {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .padding(top = 12.dp)
-                                    .fillMaxWidth(),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = staySignedIn,
-                                onCheckedChange = { staySignedIn = it }
-                            )
-                            Text(
-                                text = stringResource(R.string.stay_signed_in),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.clickable { staySignedIn = !staySignedIn }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(36.dp))
-
-                        Button(
-                            onClick = {
-                                if (!isTacSent) {
-                                    val fullPhone = getFullPhoneNumber()
-                                    if (isValidPhone(fullPhone)) {
-                                        requestTacCode()
-                                    } else {
-                                        errorMessage = context.getString(R.string.error_invalid_phone)
-                                    }
-                                } else {
-                                    if (tacCode.length != 6) {
-                                        errorMessage = "Please enter a valid 6-digit TAC code"
-                                    } else if (verificationId != null) {
-                                        val credential = PhoneAuthProvider.getCredential(verificationId!!, tacCode.trim())
-                                        completeLogin(credential)
-                                    } else {
-                                        errorMessage = "Invalid TAC code"
-                                    }
-                                }
+                    if (isTacSent) {
+                        OutlinedTextField(
+                            value = tacCode,
+                            onValueChange = {
+                                if (it.length <= 6) tacCode = it
+                                errorMessage = ""
                             },
-                            enabled = !isLoading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            } else {
-                                Text(
-                                    text = if (!isTacSent) "Request TAC" else stringResource(R.string.login),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+                            label = { Text(stringResource(R.string.tac_code)) },
+                            placeholder = { Text(stringResource(R.string.enter_tac)) },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth().testTag("tacInput"),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    }
 
-                        if (isTacSent) {
-                            TextButton(
-                                onClick = {
-                                    isTacSent = false
-                                    tacCode = ""
-                                },
-                                modifier = Modifier.padding(top = 8.dp)
-                            ) {
-                                Text(stringResource(R.string.change_phone_tac))
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        Row(
+                    if (errorMessage.isNotEmpty()) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                            Text(
-                                text = stringResource(R.string.or_continue_with),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                        }
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                    // Keep me logged in checkbox
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { staySignedIn = !staySignedIn }
+                    ) {
+                        Checkbox(
+                            checked = staySignedIn,
+                            onCheckedChange = { staySignedIn = it }
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(R.string.keep_me_logged_in),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF1E293B)
+                        )
+                    }
 
-                        OutlinedButton(
-                            onClick = { launchGoogleSignIn() },
-                            enabled = !isLoading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.White
-                            )
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = FontAwesomeIcons.Brands.Google,
-                                    contentDescription = "Google Logo",
-                                    tint = Color(0xFF4285F4),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = stringResource(R.string.sign_in_with_google),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1F1F1F)
-                                )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Request TAC Button
+                    Button(
+                        onClick = {
+                            if (!isTacSent) {
+                                val fullPhone = getFullPhoneNumber()
+                                if (isValidPhone(fullPhone)) {
+                                    requestTacCode()
+                                } else {
+                                    errorMessage = context.getString(R.string.error_invalid_phone)
+                                }
+                            } else {
+                                if (tacCode.length != 6) {
+                                    errorMessage = context.getString(R.string.error_invalid_tac)
+                                } else if (verificationId != null) {
+                                    val credential = PhoneAuthProvider.getCredential(verificationId!!, tacCode.trim())
+                                    completeLogin(credential)
+                                } else {
+                                    errorMessage = context.getString(R.string.invalid_tac)
+                                }
                             }
+                        },
+                        enabled = !isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D4ED8))
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                text = if (!isTacSent) stringResource(R.string.request_tac) else stringResource(R.string.login),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(28.dp))
+                    if (isTacSent) {
+                        TextButton(
+                            onClick = {
+                                isTacSent = false
+                                tacCode = ""
+                            },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Text(stringResource(R.string.change_phone_tac))
+                        }
+                    }
 
+                    // OR Divider
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                        Text(
+                            text = stringResource(R.string.or),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF94A3B8)
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                    }
+
+                    // Continue with Google Button
+                    OutlinedButton(
+                        onClick = { launchGoogleSignIn() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.no_account),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icon(
+                                imageVector = FontAwesomeIcons.Brands.Google,
+                                contentDescription = "Google Logo",
+                                tint = Color(0xFFEA4335),
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = stringResource(R.string.sign_up),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.clickable { onSignUpClick() }
+                                text = stringResource(R.string.continue_with_google),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
                             )
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Footer: New here? Create an account
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.new_here),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B)
+                        )
+                        Text(
+                            text = stringResource(R.string.create_an_account),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlue,
+                            modifier = Modifier.clickable { onSignUpClick() }
+                        )
                     }
                 }
             }
@@ -883,8 +957,13 @@ fun RegisterScreen(
                 }
 
                 val fullName = name.trim()
-                val derivedFirstWord = fullName.split("\\s+".toRegex()).firstOrNull()?.ifBlank { email.trim().substringBefore("@") } ?: fullPhone
-                val finalUsername = derivedFirstWord.ifBlank { fullPhone }
+                val parts = fullName.split("\\s+".toRegex()).filter { it.isNotBlank() }
+                val derivedFirstTwoWords = when {
+                    parts.size >= 2 -> "${parts[0]} ${parts[1]}"
+                    parts.size == 1 -> parts[0]
+                    else -> email.trim().substringBefore("@")
+                }
+                val finalUsername = derivedFirstTwoWords.ifBlank { fullPhone }
                 val newUser = User(
                     uid = currentUserUid,
                     username = finalUsername,
@@ -997,76 +1076,136 @@ fun RegisterScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+    ) {
         AsyncImage(
-            model = R.drawable.backgroundmountainlogin,
+            model = R.drawable.borobudur_temple_explore,
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alpha = 0.6f
+            contentScale = ContentScale.Crop
         )
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.25f),
+                            Color.Black.copy(alpha = 0.55f),
+                            Color.Black.copy(alpha = 0.85f)
+                        )
+                    )
+                )
         )
 
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = tween(600)) + slideInVertically(
-                initialOffsetY = { it / 10 },
-                animationSpec = tween(600, easing = EaseOutBack)
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Top Header Section (Logo badge, Create your account, Subtitle)
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 36.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = stringResource(R.string.create_account),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
-                    textAlign = TextAlign.Center
-                )
-
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
-                    modifier = Modifier.fillMaxWidth().widthIn(max = 500.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                    shape = CircleShape,
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.size(88.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Image(
+                            painter = painterResource(id = R.drawable.zti_logo),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(14.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = stringResource(R.string.create_your_account),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = stringResource(R.string.book_trips_with_pt_zuhanto_travel_indonesia),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            // Bottom White Card
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                color = Color.White,
+                shadowElevation = 16.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // FULL NAME section
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.full_name),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+
                         OutlinedTextField(
                             value = name,
                             onValueChange = {
                                 name = it
                                 errorMessage = ""
                             },
-                            label = { Text(stringResource(R.string.username)) },
-                            placeholder = { Text(stringResource(R.string.enter_username)) },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                            placeholder = { Text(stringResource(R.string.full_name_placeholder), color = Color(0xFF94A3B8)) },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryBlue) },
                             singleLine = true,
                             enabled = !isTacSent,
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = Color(0xFFE2E8F0),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
+                            )
                         )
+                    }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                    // Email section
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.email),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
 
                         OutlinedTextField(
                             value = email,
@@ -1074,17 +1213,30 @@ fun RegisterScreen(
                                 email = it
                                 errorMessage = ""
                             },
-                            label = { Text(stringResource(R.string.email)) },
-                            placeholder = { Text(stringResource(R.string.enter_email)) },
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                            placeholder = { Text("name@example.com", color = Color(0xFF94A3B8)) },
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryBlue) },
                             singleLine = true,
                             enabled = !isTacSent,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryBlue,
+                                unfocusedBorderColor = Color(0xFFE2E8F0),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
+                            )
                         )
+                    }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                    // Phone number section
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = stringResource(R.string.phone_number),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
 
                         CountryCodePhoneInput(
                             phoneValue = phoneInput,
@@ -1094,154 +1246,159 @@ fun RegisterScreen(
                             },
                             selectedCountry = selectedCountry,
                             onCountrySelected = { selectedCountry = it },
-                            label = stringResource(R.string.phone),
+                            label = "",
                             enabled = !isTacSent,
                             isError = errorMessage == context.getString(R.string.error_invalid_phone),
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
 
-                        if (isTacSent) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            OutlinedTextField(
-                                value = tacCode,
-                                onValueChange = {
-                                    if (it.length <= 6) tacCode = it
-                                    errorMessage = ""
-                                },
-                                label = { Text(stringResource(R.string.six_digit_tac)) },
-                                placeholder = { Text(stringResource(R.string.enter_tac)) },
-                                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth().testTag("tacInput"),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                        }
+                    // Helper text
+                    Text(
+                        text = stringResource(R.string.tac_helper_text),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF64748B)
+                    )
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        if (errorMessage.isNotEmpty()) {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .fillMaxWidth()
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        Button(
-                            onClick = {
-                                if (!isTacSent) {
-                                    requestTacCode()
-                                } else {
-                                    verifyTacAndRegister()
-                                }
+                    if (isTacSent) {
+                        OutlinedTextField(
+                            value = tacCode,
+                            onValueChange = {
+                                if (it.length <= 6) tacCode = it
+                                errorMessage = ""
                             },
-                            enabled = !isloading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
+                            label = { Text(stringResource(R.string.six_digit_tac)) },
+                            placeholder = { Text(stringResource(R.string.enter_tac)) },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth().testTag("tacInput"),
                             shape = RoundedCornerShape(16.dp)
-                        ) {
-                            if (isloading) {
-                                CircularProgressIndicator(
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            } else {
-                                Text(
-                                    text = if (!isTacSent) stringResource(R.string.send_tac_code) else "Verify & Register",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                        }
+                        )
+                    }
 
-                        if (isTacSent) {
-                            TextButton(
-                                onClick = {
-                                    isTacSent = false
-                                    tacCode = ""
-                                },
-                                modifier = Modifier.padding(top = 8.dp)
-                            ) {
-                                Text(stringResource(R.string.change_phone_tac))
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        Row(
+                    if (errorMessage.isNotEmpty()) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                            Text(
-                                text = stringResource(R.string.or_continue_with),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                        }
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                        OutlinedButton(
-                            onClick = { launchGoogleSignIn() },
-                            enabled = !isloading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.White
-                            )
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = FontAwesomeIcons.Brands.Google,
-                                    contentDescription = "Google Logo",
-                                    tint = Color(0xFF4285F4),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = stringResource(R.string.sign_in_with_google),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1F1F1F)
-                                )
+                    // Send TAC Code Button
+                    Button(
+                        onClick = {
+                            if (!isTacSent) {
+                                requestTacCode()
+                            } else {
+                                verifyTacAndRegister()
                             }
+                        },
+                        enabled = !isloading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1D4ED8))
+                    ) {
+                        if (isloading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                text = if (!isTacSent) stringResource(R.string.send_tac_code) else stringResource(R.string.verify_and_register),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                    if (isTacSent) {
+                        TextButton(
+                            onClick = {
+                                isTacSent = false
+                                tacCode = ""
+                            },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Text(stringResource(R.string.change_phone_tac))
+                        }
+                    }
 
+                    // OR Divider
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                        Text(
+                            text = stringResource(R.string.or),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF94A3B8)
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE2E8F0))
+                    }
+
+                    // Sign up with Google Button
+                    OutlinedButton(
+                        onClick = { launchGoogleSignIn() },
+                        enabled = !isloading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.already_have_account),
-                                style = MaterialTheme.typography.bodyMedium
+                            Icon(
+                                imageVector = FontAwesomeIcons.Brands.Google,
+                                contentDescription = "Google Logo",
+                                tint = Color(0xFFEA4335),
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = stringResource(R.string.login),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyLarge,
+                                text = stringResource(R.string.sign_up_with_google),
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable { onBackToLogin() }
+                                color = Color(0xFF0F172A)
                             )
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Footer: Already have an account? Log in
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.already_have_an_account),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B)
+                        )
+                        Text(
+                            text = stringResource(R.string.login),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlue,
+                            modifier = Modifier.clickable { onBackToLogin() }
+                        )
                     }
                 }
             }
@@ -1320,7 +1477,7 @@ fun PhoneVerificationBookingDialog(
 
                 override fun onVerificationFailed(e: FirebaseException) {
                     isLoading = false
-                    errorMessage = e.message ?: "Verification Failed"
+                    errorMessage = e.message ?: context.getString(R.string.verification_failed)
                 }
 
                 override fun onCodeSent(vId: String, token: PhoneAuthProvider.ForceResendingToken) {
@@ -1456,7 +1613,13 @@ private suspend fun handleGoogleSignInUser(
     val targetUsername = if (existingUser != null && existingUser.username.isNotBlank()) {
         existingUser.username
     } else {
-        if (cleanEmail.contains("@")) cleanEmail.substringBefore("@") else displayName.trim().lowercase(Locale.ROOT)
+        val nameToUse = if (displayName.isNotBlank()) displayName else cleanEmail.substringBefore("@")
+        val parts = nameToUse.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+        when {
+            parts.size >= 2 -> "${parts[0]} ${parts[1]}"
+            parts.size == 1 -> parts[0]
+            else -> cleanEmail.substringBefore("@").ifBlank { "Traveler" }
+        }
     }
 
     val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid ?: existingUser?.uid ?: ""

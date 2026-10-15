@@ -2,7 +2,7 @@ package com.example.appproject.data.repository
 
 import android.util.Log
 import com.example.appproject.data.model.Booking
-import com.example.appproject.data.model.ProblemReport
+import com.example.appproject.data.model.HelpRequest
 import com.example.appproject.data.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -30,7 +30,7 @@ class FirebaseRepository {
     private val bookingsCollection by lazy { db?.collection("bookings") }
     private val vouchersCollection by lazy { db?.collection("vouchers") }
     private val usedVouchersCollection by lazy { db?.collection("usedVouchers") }
-    private val reportsCollection by lazy { db?.collection("reports") }
+    private val helpRequestsCollection by lazy { db?.collection("helpRequests") }
 
     suspend fun testConnection(): String {
         if (db == null) return "Firestore is not initialized. Check your google-services.json and Firebase configuration."
@@ -477,53 +477,6 @@ class FirebaseRepository {
         }
     }
 
-    suspend fun saveProblemReport(report: ProblemReport): Boolean {
-        return try {
-            if (db == null) {
-                Log.e(TAG, "Firestore db is null")
-                return false
-            }
-            reportsCollection?.document(report.reportId)?.set(report)?.await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving problem report: ${e.message}", e)
-            false
-        }
-    }
-
-    suspend fun getAllProblemReports(): List<ProblemReport> {
-        return try {
-            val snapshot = reportsCollection?.get()?.await()
-            snapshot?.toObjects(ProblemReport::class.java)?.sortedByDescending { it.timestamp } ?: emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting all problem reports: ${e.message}", e)
-            emptyList()
-        }
-    }
-
-    suspend fun getProblemReportsForUser(uid: String): List<ProblemReport> {
-        if (uid.isBlank()) return emptyList()
-        return try {
-            val snapshot = reportsCollection?.whereEqualTo("userUid", uid)?.get()?.await()
-            snapshot?.toObjects(ProblemReport::class.java)?.sortedByDescending { it.timestamp } ?: emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting problem reports for user: ${e.message}", e)
-            emptyList()
-        }
-    }
-
-    suspend fun updateProblemReportFeedback(reportId: String, adminFeedback: String, status: String) {
-        try {
-            val updates = mapOf(
-                "adminFeedback" to adminFeedback.trim(),
-                "status" to status.trim()
-            )
-            reportsCollection?.document(reportId)?.update(updates)?.await()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating problem report feedback: ${e.message}")
-        }
-    }
-
     suspend fun isUserAuthorizedForBooking(booking: Booking?, loggedInUser: String?): Boolean {
         if (booking == null) return false
 
@@ -574,5 +527,43 @@ class FirebaseRepository {
         }
 
         return false
+    }
+
+    suspend fun saveHelpRequest(request: HelpRequest) {
+        try {
+            val id = request.id.ifBlank { helpRequestsCollection?.document()?.id ?: System.currentTimeMillis().toString() }
+            val finalRequest = if (request.id.isBlank()) request.copy(id = id) else request
+            helpRequestsCollection?.document(id)?.set(finalRequest)?.await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving help request: ${e.message}")
+        }
+    }
+
+    suspend fun getAllHelpRequests(): List<HelpRequest> {
+        return try {
+            helpRequestsCollection?.get()?.await()?.toObjects(HelpRequest::class.java) ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting help requests: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun getHelpRequest(requestId: String): HelpRequest? {
+        if (requestId.isBlank()) return null
+        return try {
+            val doc = helpRequestsCollection?.document(requestId)?.get()?.await()
+            doc?.toObject(HelpRequest::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting help request: ${e.message}")
+            null
+        }
+    }
+
+    suspend fun updateHelpRequestStatus(requestId: String, status: String) {
+        try {
+            helpRequestsCollection?.document(requestId)?.update("status", status)?.await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating help request status: ${e.message}")
+        }
     }
 }

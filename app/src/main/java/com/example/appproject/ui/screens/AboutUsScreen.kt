@@ -249,17 +249,23 @@ fun AboutUsScreen(
                             )
                     )
 
-                    IconButton(
-                        onClick = onBack,
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.25f),
                         modifier = Modifier
-                            .padding(top = 16.dp, start = 12.dp)
-                            .align(Alignment.TopStart)
+                            .padding(top = 16.dp, start = 16.dp)
+                            .size(42.dp)
+                            .align(Alignment.TopStart),
+                        onClick = onBack
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     Column(

@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -225,7 +226,7 @@ fun BookingDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 220.dp)
+                            .heightIn(min = 260.dp)
                     ) {
                         AsyncImage(
                             model = resolveTripImageRes(trip.name, trip.imageRes),
@@ -248,97 +249,38 @@ fun BookingDialog(
                                 )
                         )
 
+                        // Back button at top-left
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White,
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .size(40.dp)
+                                .align(Alignment.TopStart),
+                            onClick = onDismiss
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        // Trip Title at bottom-left over the dark gradient
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 24.dp)
+                                .align(Alignment.BottomStart)
+                                .padding(20.dp)
                         ) {
-                            // Top row with circular back button
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White,
-                                    modifier = Modifier.size(40.dp),
-                                    onClick = onDismiss
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Back",
-                                            tint = Color.Black,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Trip Title
                             Text(
                                 text = trip.name,
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White
                             )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Chips Row
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = Color.White
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.LocalOffer,
-                                            contentDescription = null,
-                                            tint = Color(0xFF0F172A),
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "From ${getFormattedTierPrice(availableTiers.first())} / pax",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0F172A)
-                                        )
-                                    }
-                                }
-
-                                val minPaxText = customPaxMin ?: selectedTier.paxCount
-                                Surface(
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = Color.White
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Groups,
-                                            contentDescription = null,
-                                            tint = Color(0xFF0F172A),
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Min. $minPaxText pax",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0F172A)
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
 
@@ -361,13 +303,13 @@ fun BookingDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "Who is coming?",
+                                text = stringResource(R.string.who_is_coming),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
                             )
                             Text(
-                                text = if (isCustomPaxTrip) "We need at least ${customPaxMin ?: 1} travelers for this trip." else "Pick your package and options.",
+                                text = if (isCustomPaxTrip) stringResource(R.string.we_need_at_least) + " ${customPaxMin ?: 1} " + stringResource(R.string.travelers) else stringResource(R.string.pick_your_package_and_options),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B)
                             )
@@ -401,7 +343,7 @@ fun BookingDialog(
                                                 )
                                                 Column {
                                                     Text(
-                                                        text = selectedTier.paxLabel.ifEmpty { "${selectedTier.paxCount} Pax" },
+                                                        text = selectedTier.paxLabel.ifEmpty { "${selectedTier.paxCount}" + stringResource(R.string.pax) },
                                                         style = MaterialTheme.typography.bodyLarge,
                                                         fontWeight = FontWeight.Bold,
                                                         color = PrimaryBlue
@@ -437,7 +379,7 @@ fun BookingDialog(
                                                     ) {
                                                         Column(modifier = Modifier.weight(1f)) {
                                                             Text(
-                                                                text = tier.paxLabel.ifEmpty { "${tier.paxCount} Pax" },
+                                                                text = tier.paxLabel.ifEmpty { "${tier.paxCount}" + stringResource(R.string.pax) },
                                                                 fontWeight = FontWeight.Bold,
                                                                 color = if (isSelected) PrimaryBlue else Color(0xFF0F172A)
                                                             )
@@ -481,12 +423,12 @@ fun BookingDialog(
                                     ) {
                                         Column {
                                             Text(
-                                                text = "Travelers",
+                                                text = stringResource(R.string.travelers),
                                                 style = MaterialTheme.typography.bodyLarge,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF0F172A)
                                             )
-                                            val rateStr = if (selectedTier.pricePerPaxInt > 0) String.format(Locale.US, "IDR %,d per person", selectedTier.pricePerPaxInt) else ""
+                                            val rateStr = if (selectedTier.pricePerPaxInt > 0) String.format(Locale.US, "IDR %,d " + stringResource(R.string.per_person), selectedTier.pricePerPaxInt) else ""
                                             Text(
                                                 text = rateStr,
                                                 style = MaterialTheme.typography.bodySmall,
@@ -546,13 +488,13 @@ fun BookingDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "When do you want to go?",
+                                text = stringResource(R.string.when_do_you_want_to_go),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
                             )
                             Text(
-                                text = "Pick your journey date.",
+                                text = stringResource(R.string.pick_your_journey_date),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B)
                             )
@@ -601,7 +543,7 @@ fun BookingDialog(
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        text = if (bookingDate.isBlank()) "Select a date" else bookingDate,
+                                        text = if (bookingDate.isBlank()) stringResource(R.string.select_a_date) else bookingDate,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = if (bookingDate.isBlank()) Color(0xFF94A3B8) else Color(0xFF0F172A),
                                         fontWeight = if (bookingDate.isNotBlank()) FontWeight.Bold else FontWeight.Normal
@@ -611,7 +553,7 @@ fun BookingDialog(
 
                             if (dateError) {
                                 Text(
-                                    text = "Please select a booking date.",
+                                    text = stringResource(R.string.please_select_a_booking_date),
                                     color = MaterialTheme.colorScheme.error,
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -631,13 +573,13 @@ fun BookingDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "Have a promo code?",
+                                text = stringResource(R.string.have_a_promo_code),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
                             )
                             Text(
-                                text = "Enter it here to save on your trip.",
+                                text = stringResource(R.string.enter_it_here_to_save_on_your_trip),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B)
                             )
@@ -684,7 +626,7 @@ fun BookingDialog(
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.height(56.dp)
                                 ) {
-                                    Text("Apply", fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.apply), fontWeight = FontWeight.Bold)
                                 }
                             }
 
@@ -710,13 +652,13 @@ fun BookingDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "Anything we should know?",
+                                text = stringResource(R.string.anything_we_should_know),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
                             )
                             Text(
-                                text = "Add a note for our team, like your pickup point or special needs.",
+                                text = stringResource(R.string.add_a_note_for_our_team),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B)
                             )
@@ -724,7 +666,7 @@ fun BookingDialog(
                             OutlinedTextField(
                                 value = noteText,
                                 onValueChange = { if (it.length <= 300) noteText = it },
-                                placeholder = { Text("Write your note here (optional)", color = Color(0xFF94A3B8)) },
+                                placeholder = { Text(stringResource(R.string.write_your_note_here), color = Color(0xFF94A3B8)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(110.dp),
@@ -737,20 +679,6 @@ fun BookingDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = null,
-                                        tint = Color(0xFF94A3B8),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Only our team can see this",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF94A3B8)
-                                    )
-                                }
                                 Text(
                                     text = "${noteText.length} / 300",
                                     style = MaterialTheme.typography.labelSmall,
@@ -772,7 +700,7 @@ fun BookingDialog(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "Price summary",
+                                text = stringResource(R.string.price_summary),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0F172A)
@@ -785,7 +713,7 @@ fun BookingDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Normal Price",
+                                    text = stringResource(R.string.normal_price),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFF64748B)
                                 )
@@ -802,7 +730,7 @@ fun BookingDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Promo discount",
+                                    text = stringResource(R.string.promo_discount),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color(0xFF64748B)
                                 )
@@ -825,7 +753,7 @@ fun BookingDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Total",
+                                    text = stringResource(R.string.total_price),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color(0xFF0F172A)
@@ -856,7 +784,7 @@ fun BookingDialog(
                     ) {
                         Column {
                             Text(
-                                text = "Total for $effectivePaxCount travelers",
+                                text = stringResource(R.string.total_for) + " $effectivePaxCount " + stringResource(R.string.travelers),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFF64748B)
                             )
@@ -889,7 +817,7 @@ fun BookingDialog(
                             contentPadding = PaddingValues(horizontal = 28.dp, vertical = 14.dp)
                         ) {
                             Text(
-                                text = "Book now",
+                                text = stringResource(R.string.book_now),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )

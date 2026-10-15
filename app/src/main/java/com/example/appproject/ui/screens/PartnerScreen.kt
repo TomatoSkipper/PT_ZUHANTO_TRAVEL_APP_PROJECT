@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -171,17 +172,23 @@ fun PartnerScreen(
                             )
                         )
                 ) {
-                    IconButton(
-                        onClick = onBack,
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.25f),
                         modifier = Modifier
-                            .padding(top = 16.dp, start = 12.dp)
-                            .align(Alignment.TopStart)
+                            .padding(top = 16.dp, start = 16.dp)
+                            .size(42.dp)
+                            .align(Alignment.TopStart),
+                        onClick = onBack
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     Box(

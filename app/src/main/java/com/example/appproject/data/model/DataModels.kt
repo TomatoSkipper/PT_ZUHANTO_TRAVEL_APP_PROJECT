@@ -212,19 +212,6 @@ val defaultCountryCodes = listOf(
     CountryCodeOption("United Arab Emirates", "+971", "🇦🇪")
 )
 
-data class ProblemReport(
-    val reportId: String = "",
-    val userUid: String = "",
-    val username: String = "",
-    val userEmail: String = "",
-    val title: String = "",
-    val description: String = "",
-    val photoBase64: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
-    val status: String = "Pending",
-    val adminFeedback: String = ""
-)
-
 data class TargetClassConfig(
     val urlPath: String,
     val classA: String,
@@ -385,27 +372,6 @@ fun getPaymentStatusDisplay(status: String?, context: Context? = null): String {
     }
 }
 
-fun normalizeReportStatus(status: String?): String {
-    if (status.isNullOrBlank()) return "Pending"
-    val lower = status.trim().lowercase()
-    return when {
-        lower.contains("progress") || lower.contains("proses") || lower.contains("in_progress") || lower.contains("dijalankan") || lower.contains("sedang") -> "In Progress"
-        lower.contains("resolve") || lower.contains("selesai") || lower.contains("complete") || lower.contains("diselesaikan") -> "Resolved"
-        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
-        else -> "Pending"
-    }
-}
-
-fun getReportStatusDisplay(status: String?, context: Context? = null): String {
-    val norm = normalizeReportStatus(status)
-    return when (norm) {
-        "In Progress" -> context?.getString(R.string.in_progress) ?: "In Progress"
-        "Resolved" -> context?.getString(R.string.resolved) ?: "Resolved"
-        "Cancelled" -> context?.getString(R.string.cancelled) ?: "Cancelled"
-        else -> context?.getString(R.string.pending) ?: "Pending"
-    }
-}
-
 const val ADMIN_UID = "0TGdUZiaJnc92nOGPsRdQMqubWV2"
 
 fun isUserAdmin(uid: String?, claims: Map<String, Any>?): Boolean {
@@ -414,3 +380,16 @@ fun isUserAdmin(uid: String?, claims: Map<String, Any>?): Boolean {
     val adminClaim = claims["admin"]
     return adminClaim == true || adminClaim?.toString()?.lowercase() == "true"
 }
+
+data class HelpRequest(
+    val id: String = "",
+    val category: String = "",
+    val question: String = "",
+    val customerName: String = "",
+    val customerEmail: String = "",
+    val customerPhone: String = "",
+    val tripPackage: String = "",
+    val timestamp: String = "",
+    val status: String = "Pending",
+    val customerUid: String = ""
+)
