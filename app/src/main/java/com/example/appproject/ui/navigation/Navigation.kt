@@ -19,55 +19,53 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Handshake
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberDrawerState
+
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -96,18 +94,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
-import kotlinx.coroutines.tasks.await
+import com.example.appproject.data.model.isUserAdmin
 import com.example.appproject.data.model.normalizeBookingStatus
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.ui.screens.AboutUsScreen
-import com.example.appproject.ui.screens.AdminReportsScreen
+import com.example.appproject.ui.screens.AdminHelpDetailScreen
+import com.example.appproject.ui.screens.AdminHelpScreen
 import com.example.appproject.ui.screens.AdminScreen
 import com.example.appproject.ui.screens.AdminUsersScreen
 import com.example.appproject.ui.screens.AdminVouchersScreen
 import com.example.appproject.ui.screens.DashboardHomeScreen
+import com.example.appproject.ui.screens.HelpScreen
 import com.example.appproject.ui.screens.InvoiceScreen
 import com.example.appproject.ui.screens.LoginScreen
+import com.example.appproject.ui.screens.MyAccountScreen
 import com.example.appproject.ui.screens.MyBookingsScreen
 import com.example.appproject.ui.screens.PartnerScreen
 import com.example.appproject.ui.screens.PaymentScreen
@@ -130,6 +130,7 @@ import com.example.appproject.worker.showBookingConfirmedNotification
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,7 +141,6 @@ fun AppNavigationDrawer() {
         context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
     }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     val navController = rememberNavController()
@@ -150,40 +150,50 @@ fun AppNavigationDrawer() {
     var showSplash by remember { mutableStateOf(true) }
 
     var loggedInUser by rememberSaveable { mutableStateOf<String?>(null) }
-    val isAdminLoggedIn = loggedInUser == ADMIN_USERNAME
+    var displayUsername by rememberSaveable { mutableStateOf<String?>("Traveler") }
+    var isAdminLoggedIn by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(loggedInUser, isAdminLoggedIn) {
+        val uid = loggedInUser
+        if (!uid.isNullOrBlank()) {
+            if (isAdminLoggedIn) {
+                displayUsername = "Admin"
+            } else {
+                val user = firebaseRepo.getUser(uid)
+                if (user != null) {
+                    displayUsername = user.username.ifBlank { user.name.ifBlank { "Traveler" } }
+                } else {
+                    displayUsername = "Traveler"
+                }
+            }
+        } else {
+            displayUsername = null
+        }
+    }
 
     LaunchedEffect(Unit) {
-        val savedUsername = sessionPreferences.getString("signed_in_username", null)
-        if (savedUsername != null) {
-            val firebaseUser = FirebaseAuth.getInstance().currentUser
-            if (firebaseUser == null) {
-                sessionPreferences.edit().remove("signed_in_username").apply()
-                return@LaunchedEffect
-            }
+        val firebaseUser = FirebaseAuth.getInstance().currentUser
+        if (firebaseUser != null) {
+            val uid = firebaseUser.uid
+            try {
+                val tokenResult = firebaseUser.getIdToken(true).await()
+                val isAdmin = isUserAdmin(uid, tokenResult?.claims)
+                isAdminLoggedIn = isAdmin
 
-            val restoredUsername = if (savedUsername == ADMIN_USERNAME) {
-                try {
-                    val tokenResult = firebaseUser.getIdToken(false).await()
-                    val isAdmin = tokenResult?.claims?.get("admin") as? Boolean == true
-                    if (isAdmin) ADMIN_USERNAME else null
-                } catch (_: Exception) {
-                    null
+                val user = firebaseRepo.getUser(uid)
+                if (user != null && !user.isBanned) {
+                    loggedInUser = uid
+                } else if (isAdmin) {
+                    loggedInUser = uid
+                } else {
+                    FirebaseAuth.getInstance().signOut()
+                    loggedInUser = null
+                    isAdminLoggedIn = false
                 }
-            } else {
-                try {
-                    firebaseRepo.getUser(savedUsername)
-                        ?.takeUnless { it.isBanned }
-                        ?.username
-                } catch (_: Exception) {
-                    null
-                }
-            }
-
-            if (restoredUsername != null) {
-                loggedInUser = restoredUsername
-            } else {
-                sessionPreferences.edit().remove("signed_in_username").apply()
+            } catch (_: Exception) {
                 FirebaseAuth.getInstance().signOut()
+                loggedInUser = null
+                isAdminLoggedIn = false
             }
         }
     }
@@ -201,13 +211,13 @@ fun AppNavigationDrawer() {
         }
     }
 
-    DisposableEffect(loggedInUser) {
+    DisposableEffect(loggedInUser, isAdminLoggedIn) {
         val user = loggedInUser
         if (user.isNullOrEmpty()) {
             return@DisposableEffect onDispose {}
         }
 
-        val listenerRegistration = if (user == ADMIN_USERNAME) {
+        val listenerRegistration = if (isAdminLoggedIn) {
             firebaseRepo.listenToAllBookings { bookingList ->
                 val prefs = context.getSharedPreferences("booking_notifications_prefs", Context.MODE_PRIVATE)
                 val isInitialized = prefs.getBoolean("admin_booking_notifications_initialized", false)
@@ -253,10 +263,10 @@ fun AppNavigationDrawer() {
     val activity = context as? AppCompatActivity
     val targetBookingId = activity?.intent?.getStringExtra("navigate_to_booking_id")
     val navigateToAdmin = activity?.intent?.getBooleanExtra("navigate_to_admin", false) ?: false
-    LaunchedEffect(targetBookingId, navigateToAdmin, loggedInUser, showSplash) {
+    LaunchedEffect(targetBookingId, navigateToAdmin, loggedInUser, isAdminLoggedIn, showSplash) {
         if (!showSplash && (!targetBookingId.isNullOrEmpty() || navigateToAdmin) && loggedInUser != null) {
             try {
-                if (loggedInUser == ADMIN_USERNAME || navigateToAdmin) {
+                if (isAdminLoggedIn || navigateToAdmin) {
                     navController.navigate("admin") {
                         launchSingleTop = true
                     }
@@ -274,332 +284,122 @@ fun AppNavigationDrawer() {
         }
     }
 
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
     if (showSplash) {
         SplashWithCircularLogo(onSplashFinished = { showSplash = false })
     } else {
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-                ModalDrawerSheet(
-                    modifier = Modifier.width(250.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
-                    windowInsets = WindowInsets(0)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
+                if (isAdminLoggedIn) {
+                    ModalDrawerSheet(
+                        modifier = Modifier.width(250.dp)
                     ) {
-                    // Modern Header Card in Navigation Drawer
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(NavyStart, PrimaryBlue, Color(0xFF1E88E5))
-                                )
-                            )
-                            .padding(24.dp)
-                    ) {
-                        Column {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Surface(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape),
                                 shape = CircleShape,
-                                color = Color.White,
-                                shadowElevation = 6.dp
+                                color = PrimaryBlue,
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = PrimaryBlue,
-                                        modifier = Modifier.size(40.dp)
-                                    )
+                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color.White)
                                 }
                             }
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Text(
-                                text = if (loggedInUser != null) "Hello, $loggedInUser" else stringResource(R.string.company_name_zuhanto),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = if (loggedInUser != null) stringResource(R.string.ready_for_your_next_trip) + "?" else stringResource(R.string.explore_indonesia_in_style),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(text = "Administrator", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                Text(text = displayUsername ?: "Admin", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
-                    }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Drawer Group 1: Main Exploration
-                    Text(
-                        text = stringResource(R.string.explore),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 4.dp)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Explore, contentDescription = null) },
-                        label = {
-                            Text(
-                                when {
-                                    isAdminLoggedIn -> stringResource(R.string.admin_dashboard)
-                                    else -> stringResource(R.string.dashboard)
-                                },
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        },
-                        selected = if (loggedInUser != null) {
-                            if (isAdminLoggedIn) currentRoute == "admin"
-                            else currentRoute?.startsWith("dashboard") == true
-                        } else {
-                            currentRoute == "home" || currentRoute == "dashboard"
-                        },
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            if (loggedInUser != null) {
-                                val targetRoute = if (isAdminLoggedIn) "admin" else "dashboard/$loggedInUser"
-                                if (currentRoute != targetRoute) {
-                                    navController.navigate(targetRoute) { launchSingleTop = true }
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.AdminPanelSettings, contentDescription = null) },
+                            label = { Text(stringResource(R.string.admin_dashboard)) },
+                            selected = currentRoute == "admin",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("admin") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                            } else {
-                                if (currentRoute != "dashboard") {
-                                    navController.navigate("dashboard") {
-                                        popUpTo(0) { inclusive = true }
-                                        launchSingleTop = true
-                                    }
-                                }
-                            }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedIconColor = PrimaryBlue,
-                            selectedTextColor = PrimaryBlue
-                        ),
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    if (!isAdminLoggedIn) {
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Place, contentDescription = null) },
-                            label = { Text(stringResource(R.string.promo_trip), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "promotrip",
-                            onClick = {
-                                navController.navigate("promotrip") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) },
-                            label = { Text("AI Travel Assistant", fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute?.startsWith("chat") == true,
-                            onClick = {
-                                navController.navigate("chat") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.secondary,
-                                selectedTextColor = MaterialTheme.colorScheme.secondary
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-
-                    // Drawer Group 2: Account & Travel
-                    if (loggedInUser != null && !isAdminLoggedIn) {
-                        Text(
-                            text = stringResource(R.string.my_account),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Book, contentDescription = null) },
-                            label = { Text(stringResource(R.string.my_bookings), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute?.startsWith("bookings") == true,
-                            onClick = {
-                                navController.navigate("bookings/$loggedInUser") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                            label = { Text(stringResource(R.string.available_vouchers), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "vouchers",
-                            onClick = {
-                                navController.navigate("vouchers") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            label = { Text(stringResource(R.string.profile_lowercase), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute?.startsWith("profile") == true,
-                            onClick = {
-                                navController.navigate("profile/$loggedInUser") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue
-                            ),
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-                    }
-
-                    if (isAdminLoggedIn) {
-                        Text(
-                            text = stringResource(R.string.admin_controls),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                        )
-
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            label = { Text(stringResource(R.string.user_account), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "admin-users",
-                            onClick = {
-                                navController.navigate("admin-users") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
                             },
                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                         )
                         NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Warning, contentDescription = null) },
-                            label = { Text(stringResource(R.string.user_reports), fontWeight = FontWeight.SemiBold) },
-                            selected = currentRoute == "admin-reports",
-                            onClick = {
-                                navController.navigate("admin-reports") { launchSingleTop = true }
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                            label = { Text(stringResource(R.string.manage_vouchers), fontWeight = FontWeight.SemiBold) },
+                            icon = { Icon(Icons.Default.ConfirmationNumber, contentDescription = null) },
+                            label = { Text(stringResource(R.string.manage_vouchers)) },
                             selected = currentRoute == "admin-vouchers",
                             onClick = {
-                                navController.navigate("admin-vouchers") { launchSingleTop = true }
                                 scope.launch { drawerState.close() }
+                                navController.navigate("admin-vouchers") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                            label = { Text(stringResource(R.string.user_accounts)) },
+                            selected = currentRoute == "admin-users",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("admin-users") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },
+                            label = { Text(stringResource(R.string.help_requests)) },
+                            selected = currentRoute == "admin-help",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("admin-help") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                        NavigationDrawerItem(
+                            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                            label = { Text(stringResource(R.string.settings)) },
+                            selected = currentRoute == "settings",
+                            onClick = {
+                                scope.launch { drawerState.close() }
+                                navController.navigate("settings") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             },
                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                         )
 
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
-                    }
-
-                    // Drawer Group 3: App Information
-                    Text(
-                        text = stringResource(R.string.info_and_settings),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Handshake, contentDescription = null) },
-                        label = { Text(stringResource(R.string.partner), fontWeight = FontWeight.Medium) },
-                        selected = currentRoute == "partner",
-                        onClick = {
-                            navController.navigate("partner") { launchSingleTop = true }
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                        label = { Text(stringResource(R.string.settings), fontWeight = FontWeight.Medium) },
-                        selected = currentRoute == "settings",
-                        onClick = {
-                            navController.navigate("settings") {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Info, contentDescription = null) },
-                        label = { Text(stringResource(R.string.about), fontWeight = FontWeight.Medium) },
-                        selected = currentRoute == "about",
-                        onClick = {
-                            navController.navigate("about") {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-
-                    if (loggedInUser != null) {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-
+                        Spacer(modifier = Modifier.weight(1f))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         NavigationDrawerItem(
-                            icon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            label = {
-                                Text(
-                                    stringResource(R.string.logout),
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
+                            icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            label = { Text(stringResource(R.string.logout), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
                             selected = false,
                             onClick = {
                                 scope.launch { drawerState.close() }
                                 loggedInUser = null
+                                isAdminLoggedIn = false
+                                displayUsername = null
                                 sessionPreferences.edit().remove("signed_in_username").apply()
                                 FirebaseAuth.getInstance().signOut()
                                 navController.navigate("dashboard") {
@@ -609,8 +409,8 @@ fun AppNavigationDrawer() {
                             },
                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-                  }
                 }
             }
         ) {
@@ -621,10 +421,27 @@ fun AppNavigationDrawer() {
                             containerColor = MaterialTheme.colorScheme.surface,
                             titleContentColor = MaterialTheme.colorScheme.onSurface
                         ),
+                        navigationIcon = {
+                            if (isAdminLoggedIn) {
+                                androidx.compose.material3.IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                    Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.open_drawer))
+                                }
+                            }
+                        },
                         title = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.clickable {
+                                    val target = if (loggedInUser != null) "dashboard/$loggedInUser" else "dashboard"
+                                    if (currentRoute != target) {
+                                        navController.navigate(target) {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                }
                             ) {
                                 Surface(
                                     shape = CircleShape,
@@ -680,368 +497,613 @@ fun AppNavigationDrawer() {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(stringResource(R.string.login), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
-                            } else if (!isAdminLoggedIn) {
-                                IconButton(
-                                    onClick = {
-                                        navController.navigate("profile/$loggedInUser") {
-                                            launchSingleTop = true
-                                        }
+                            }
+                        }
+                    )
+                },
+                bottomBar = {
+                    if (!isAdminLoggedIn && currentRoute?.startsWith("trip-detail/") != true) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp
+                    ) {
+                        val isDashboardSelected = currentRoute == "dashboard" || currentRoute?.startsWith("dashboard/") == true
+                        val isPromoTripSelected = currentRoute == "promotrip" || currentRoute?.startsWith("trip-detail/") == true
+                        val isBookingsSelected = currentRoute?.startsWith("bookings/") == true
+                        val isHelpSelected = currentRoute == "help"
+                        val isMyAccountSelected = currentRoute == "myaccount" || currentRoute == "vouchers" || currentRoute?.startsWith("profile/") == true || currentRoute == "settings" || currentRoute == "about" || currentRoute == "partner"
+
+                        NavigationBarItem(
+                            selected = isDashboardSelected,
+                            onClick = {
+                                val target = if (loggedInUser != null) "dashboard/$loggedInUser" else "dashboard"
+                                if (currentRoute != target) {
+                                    navController.navigate(target) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        modifier = Modifier.size(34.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = loggedInUser?.take(1)?.uppercase() ?: "U",
-                                                fontWeight = FontWeight.Bold,
-                                                color = PrimaryBlue,
-                                                fontSize = 14.sp
-                                            )
+                                }
+                            },
+                            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                            label = { Text("Home") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isPromoTripSelected,
+                            onClick = {
+                                if (currentRoute != "promotrip") {
+                                    navController.navigate("promotrip") {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.Default.Place, contentDescription = "Promo Trip") },
+                            label = { Text(
+                                text = stringResource(R.string.promo_trip),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            ) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isBookingsSelected,
+                            onClick = {
+                                val target = if (loggedInUser != null && !isAdminLoggedIn) "bookings/$loggedInUser" else "bookings/guest"
+                                if (currentRoute != target) {
+                                    navController.navigate(target) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Bookings") },
+                            label = { Text(stringResource(R.string.bookings)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isHelpSelected,
+                            onClick = {
+                                if (currentRoute != "help") {
+                                    navController.navigate("help") {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = "Help") },
+                            label = { Text(stringResource(R.string.help)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+
+                        NavigationBarItem(
+                            selected = isMyAccountSelected,
+                            onClick = {
+                                if (currentRoute != "myaccount") {
+                                    val popped = navController.popBackStack("myaccount", false)
+                                    if (!popped) {
+                                        navController.navigate("myaccount") {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
                                     }
                                 }
+                            },
+                            icon = { Icon(Icons.Default.AccountCircle, contentDescription = "My Account") },
+                            label = { Text(stringResource(R.string.my_account)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryBlue,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    }
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = when {
+                    isAdminLoggedIn -> "admin"
+                    loggedInUser != null -> "dashboard/$loggedInUser"
+                    else -> "dashboard"
+                },
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(350))
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { -it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(350))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(350))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(350, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(350))
+                }
+            ) {
+                composable("home") {
+                    LoginScreen(
+                        firebaseRepo = firebaseRepo,
+                        onLoginSuccess = { user ->
+                            scope.launch {
+                                val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                isAdminLoggedIn = isAdmin
+                                loggedInUser = user
+                                val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                navController.navigate(destination) {
+                                    popUpTo("home") { inclusive = true }
+                                }
                             }
                         },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = stringResource(R.string.open_drawer),
-                                    tint = PrimaryBlue
-                                )
+                        onSignUpClick = {
+                            navController.navigate("register")
+                        }
+                    )
+                }
+                composable("dashboard/{username}") { backStackEntry ->
+                    val username = backStackEntry.arguments?.getString("username") ?: ""
+                    DashboardHomeScreen(
+                        username = username,
+                        firebaseRepo = firebaseRepo,
+                        onBookNow = {
+                            navController.navigate("promotrip") {
+                                launchSingleTop = true
                             }
                         }
                     )
                 }
-            ) { innerPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = when {
-                        isAdminLoggedIn -> "admin"
-                        loggedInUser != null -> "dashboard/$loggedInUser"
-                        else -> "dashboard"
-                    },
-                    modifier = Modifier.padding(innerPadding),
-                    enterTransition = {
-                        slideInHorizontally(
-                            initialOffsetX = { it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeIn(animationSpec = tween(350))
-                    },
-                    exitTransition = {
-                        slideOutHorizontally(
-                            targetOffsetX = { -it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeOut(animationSpec = tween(350))
-                    },
-                    popEnterTransition = {
-                        slideInHorizontally(
-                            initialOffsetX = { -it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeIn(animationSpec = tween(350))
-                    },
-                    popExitTransition = {
-                        slideOutHorizontally(
-                            targetOffsetX = { it },
-                            animationSpec = tween(350, easing = FastOutSlowInEasing)
-                        ) + fadeOut(animationSpec = tween(350))
-                    }
-                ) {
-                    composable("home") {
+                composable("dashboard") {
+                    DashboardHomeScreen(
+                        username = "Traveler",
+                        firebaseRepo = firebaseRepo,
+                        onBookNow = {
+                            navController.navigate("promotrip") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("myaccount") {
+                    MyAccountScreen(
+                        loggedInUser = loggedInUser,
+                        displayUsername = displayUsername,
+                        isAdminLoggedIn = isAdminLoggedIn,
+                        firebaseRepo = firebaseRepo,
+                        onNavigateToBookings = {
+                            val target = if (loggedInUser != null) "bookings/$loggedInUser" else "bookings/guest"
+                            navController.navigate(target) { launchSingleTop = true }
+                        },
+                        onNavigateToVouchers = {
+                            navController.navigate("vouchers") { launchSingleTop = true }
+                        },
+                        onNavigateToProfile = {
+                            if (loggedInUser != null) {
+                                navController.navigate("profile/$loggedInUser") { launchSingleTop = true }
+                            } else {
+                                navController.navigate("home") { launchSingleTop = true }
+                            }
+                        },
+                        onNavigateToSettings = {
+                            navController.navigate("settings") { launchSingleTop = true }
+                        },
+                        onNavigateToAbout = {
+                            navController.navigate("about") { launchSingleTop = true }
+                        },
+                        onNavigateToPartner = {
+                            navController.navigate("partner") { launchSingleTop = true }
+                        },
+                        onNavigateToHelp = {
+                            navController.navigate("help") { launchSingleTop = true }
+                        },
+                        onNavigateToLogin = {
+                            navController.navigate("home") { launchSingleTop = true }
+                        },
+                        onLogout = {
+                            loggedInUser = null
+                            isAdminLoggedIn = false
+                            displayUsername = null
+                            sessionPreferences.edit().remove("signed_in_username").apply()
+                            FirebaseAuth.getInstance().signOut()
+                            navController.navigate("dashboard") {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("admin") {
+                    AdminScreen(
+                        firebaseRepo = firebaseRepo
+                    )
+                }
+                composable("admin-vouchers") {
+                    if (isAdminLoggedIn) {
+                        AdminVouchersScreen(firebaseRepo = firebaseRepo)
+                    } else {
                         LoginScreen(
                             firebaseRepo = firebaseRepo,
                             onLoginSuccess = { user ->
-                                loggedInUser = user
-                                val destination =
-                                    if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                navController.navigate(destination) {
-                                    popUpTo("home") { inclusive = true }
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
+                    }
+                }
+                composable("admin-users") {
+                    if (isAdminLoggedIn) {
+                        AdminUsersScreen(firebaseRepo = firebaseRepo)
+                    } else {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
+                    }
+                }
+                composable("admin-help") {
+                    if (isAdminLoggedIn) {
+                        AdminHelpScreen(
+                            firebaseRepo = firebaseRepo,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToDetail = { requestId ->
+                                navController.navigate("admin-help-detail/$requestId")
+                            }
+                        )
+                    } else {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
+                    }
+                }
+                composable("admin-help-detail/{requestId}") { backStackEntry ->
+                    val requestId = backStackEntry.arguments?.getString("requestId") ?: ""
+                    if (isAdminLoggedIn) {
+                        AdminHelpDetailScreen(
+                            requestId = requestId,
+                            firebaseRepo = firebaseRepo,
+                            onBack = { navController.popBackStack() }
+                        )
+                    } else {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onSignUpClick = { navController.navigate("register") }
+                        )
+                    }
+                }
+                composable("promotrip") {
+                    PromoTripScreen(
+                        username = loggedInUser ?: "",
+                        firebaseRepo = firebaseRepo,
+                        onViewTripDetail = { trip ->
+                            navController.navigate("trip-detail/${Uri.encode(trip.name)}") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onRequireLogin = {
+                            navController.navigate("home") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("trip-detail/{tripName}") { backStackEntry ->
+                    val encodedName = backStackEntry.arguments?.getString("tripName") ?: ""
+                    val tripName = Uri.decode(encodedName)
+                    PromoTripDetailScreen(
+                        tripName = tripName,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser ?: "",
+                        onBack = { navController.popBackStack() },
+                        onRequireLogin = {
+                            navController.navigate("home") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onNavigateToChat = { destination ->
+                            navController.navigate("chat/${Uri.encode(destination)}") {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+                composable("chat") {
+                    TravelChatScreen(
+                        destination = "General Travel",
+                        onBack = { navController.popBackStack() },
+                        onNavigateToHelp = { navController.navigate("help") }
+                    )
+                }
+                composable("chat/{destination}") { backStackEntry ->
+                    val encodedDest = backStackEntry.arguments?.getString("destination") ?: ""
+                    val destination = Uri.decode(encodedDest)
+                    TravelChatScreen(
+                        destination = destination,
+                        onBack = { navController.popBackStack() },
+                        onNavigateToHelp = { navController.navigate("help") }
+                    )
+                }
+                composable("bookings/{username}") { backStackEntry ->
+                    val username = backStackEntry.arguments?.getString("username") ?: ""
+                    val isGuest = loggedInUser == null || username == "guest"
+                    if (isGuest) {
+                        MyBookingsScreen(
+                            username = "guest",
+                            firebaseRepo = firebaseRepo,
+                            onViewReceipt = {},
+                            onViewInvoice = {},
+                            onBack = { navController.popBackStack() },
+                            isGuest = true,
+                            onLoginClick = {
+                                navController.navigate("home") { launchSingleTop = true }
+                            }
+                        )
+                    } else if (loggedInUser == null || loggedInUser != username || isAdminLoggedIn) {
+                        LoginScreen(
+                            firebaseRepo = firebaseRepo,
+                            onLoginSuccess = { user ->
+                                scope.launch {
+                                    val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                    val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                    val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                    isAdminLoggedIn = isAdmin
+                                    loggedInUser = user
+                                    val destination = if (isAdmin) "admin" else "dashboard/$user"
+                                    navController.navigate(destination) {
+                                        popUpTo("home") { inclusive = true }
+                                    }
                                 }
                             },
                             onSignUpClick = {
                                 navController.navigate("register")
                             }
                         )
-                    }
-                    composable("dashboard/{username}") { backStackEntry ->
-                        val username = backStackEntry.arguments?.getString("username") ?: ""
-                        DashboardHomeScreen(
+                    } else {
+                        MyBookingsScreen(
                             username = username,
                             firebaseRepo = firebaseRepo,
-                            onBookNow = {
-                                navController.navigate("promotrip") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("dashboard") {
-                        DashboardHomeScreen(
-                            username = "Traveler",
-                            firebaseRepo = firebaseRepo,
-                            onBookNow = {
-                                navController.navigate("promotrip") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("admin") {
-                        AdminScreen(
-                            firebaseRepo = firebaseRepo
-                        )
-                    }
-                    composable("admin-vouchers") {
-                        if (isAdminLoggedIn) {
-                            AdminVouchersScreen(firebaseRepo = firebaseRepo)
-                        } else {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                },
-                                onSignUpClick = { navController.navigate("register") }
-                            )
-                        }
-                    }
-                    composable("admin-users") {
-                        if (isAdminLoggedIn) {
-                            AdminUsersScreen(firebaseRepo = firebaseRepo)
-                        } else {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                },
-                                onSignUpClick = { navController.navigate("register") }
-                            )
-                        }
-                    }
-                    composable("admin-reports") {
-                        if (isAdminLoggedIn) {
-                            AdminReportsScreen(firebaseRepo = firebaseRepo)
-                        } else {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                },
-                                onSignUpClick = { navController.navigate("register") }
-                            )
-                        }
-                    }
-                    composable("promotrip") {
-                        PromoTripScreen(
-                            username = loggedInUser ?: "",
-                            firebaseRepo = firebaseRepo,
-                            onViewTripDetail = { trip ->
-                                navController.navigate("trip-detail/${Uri.encode(trip.name)}") {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onRequireLogin = {
-                                navController.navigate("home") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("trip-detail/{tripName}") { backStackEntry ->
-                        val encodedName = backStackEntry.arguments?.getString("tripName") ?: ""
-                        val tripName = Uri.decode(encodedName)
-                        PromoTripDetailScreen(
-                            tripName = tripName,
-                            firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser ?: "",
-                            onBack = { navController.popBackStack() },
-                            onRequireLogin = {
-                                navController.navigate("home") {
-                                    launchSingleTop = true
-                                }
-                            },
-                            onNavigateToChat = { destination ->
-                                navController.navigate("chat/${Uri.encode(destination)}") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("chat") {
-                        TravelChatScreen(
-                            destination = "General Travel",
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-                    composable("chat/{destination}") { backStackEntry ->
-                        val encodedDest = backStackEntry.arguments?.getString("destination") ?: ""
-                        val destination = Uri.decode(encodedDest)
-                        TravelChatScreen(
-                            destination = destination,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-                    composable("bookings/{username}") { backStackEntry ->
-                        val username = backStackEntry.arguments?.getString("username") ?: ""
-                        if (loggedInUser == null || loggedInUser != username || isAdminLoggedIn) {
-                            LoginScreen(
-                                firebaseRepo = firebaseRepo,
-                                onLoginSuccess = { user ->
-                                    loggedInUser = user
-                                    val destination =
-                                        if (user == ADMIN_USERNAME) "admin" else "dashboard/$user"
-                                    navController.navigate(destination) {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                },
-                                onSignUpClick = {
-                                    navController.navigate("register")
-                                }
-                            )
-                        } else {
-                            MyBookingsScreen(
-                                username = username,
-                                firebaseRepo = firebaseRepo,
-                                onViewReceipt = { bId ->
-                                    navController.navigate("receipt/$bId")
-                                },
-                                onViewInvoice = { bId ->
-                                    navController.navigate("invoice/$bId")
-                                },
-                                onPayNow = { bId ->
-                                    navController.navigate("payment/$bId")
-                                }
-                            )
-                        }
-                    }
-                    composable("payment/{bookingId}") { backStackEntry ->
-                        val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                        PaymentScreen(
-                            bookingId = bookingId,
-                            firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser,
-                            onBack = { navController.popBackStack() },
-                            onRedirectToBookings = {
-                                navController.navigate("bookings/$loggedInUser") {
-                                    popUpTo("bookings/$loggedInUser") { inclusive = false }
-                                }
-                            },
+                            isGuest = false,
                             onViewReceipt = { bId ->
-                                navController.navigate("receipt/$bId") {
-                                    popUpTo("payment/$bId") { inclusive = true }
-                                }
+                                navController.navigate("receipt/$bId")
                             },
                             onViewInvoice = { bId ->
-                                navController.navigate("invoice/$bId") {
-                                    popUpTo("payment/$bId") { inclusive = true }
-                                }
-                            }
-                        )
-                    }
-                    composable("receipt/{bookingId}") { backStackEntry ->
-                        val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                        ReceiptScreen(
-                            bookingId = bookingId,
-                            firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser,
+                                navController.navigate("invoice/$bId")
+                            },
+                            onPayNow = { bId ->
+                                navController.navigate("payment/$bId")
+                            },
                             onBack = { navController.popBackStack() }
                         )
                     }
-                    composable("invoice/{bookingId}") { backStackEntry ->
-                        val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                        InvoiceScreen(
-                            bookingId = bookingId,
+                }
+                composable("payment/{bookingId}") { backStackEntry ->
+                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                    PaymentScreen(
+                        bookingId = bookingId,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser,
+                        onBack = { navController.popBackStack() },
+                        onRedirectToBookings = {
+                            navController.navigate("bookings/$loggedInUser") {
+                                popUpTo("bookings/$loggedInUser") { inclusive = false }
+                            }
+                        },
+                        onViewReceipt = { bId ->
+                            navController.navigate("receipt/$bId") {
+                                popUpTo("payment/$bId") { inclusive = true }
+                            }
+                        },
+                        onViewInvoice = { bId ->
+                            navController.navigate("invoice/$bId") {
+                                popUpTo("payment/$bId") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                composable("receipt/{bookingId}") { backStackEntry ->
+                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                    ReceiptScreen(
+                        bookingId = bookingId,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("invoice/{bookingId}") { backStackEntry ->
+                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                    InvoiceScreen(
+                        bookingId = bookingId,
+                        firebaseRepo = firebaseRepo,
+                        loggedInUser = loggedInUser,
+                        onBack = { navController.popBackStack() },
+                        onViewReceipt = { bId ->
+                            navController.navigate("receipt/$bId") {
+                                popUpTo("invoice/$bId") { inclusive = true }
+                            }
+                        }
+                    )
+                }
+                composable("vouchers") {
+                    UserVouchersScreen(
+                        firebaseRepo = firebaseRepo,
+                        username = loggedInUser ?: "",
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("partner") {
+                    PartnerScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("profile/{username}") { backStackEntry ->
+                    val usernameArg = backStackEntry.arguments?.getString("username") ?: ""
+                    if (isAdminLoggedIn) {
+                        LaunchedEffect(Unit) {
+                            navController.navigate("admin") {
+                                popUpTo("admin") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    } else {
+                        ProfileScreen(
+                            username = usernameArg,
                             firebaseRepo = firebaseRepo,
-                            loggedInUser = loggedInUser,
                             onBack = { navController.popBackStack() },
-                            onViewReceipt = { bId ->
-                                navController.navigate("receipt/$bId") {
-                                    popUpTo("invoice/$bId") { inclusive = true }
-                                }
-                            }
-                        )
-                    }
-                    composable("vouchers") {
-                        UserVouchersScreen(
-                            firebaseRepo = firebaseRepo,
-                            username = loggedInUser ?: ""
-                        )
-                    }
-                    composable("partner") {
-                        PartnerScreen()
-                    }
-                    composable("profile/{username}") { backStackEntry ->
-                        val usernameArg = backStackEntry.arguments?.getString("username") ?: ""
-                        if (usernameArg.equals(ADMIN_USERNAME, ignoreCase = true)) {
-                            LaunchedEffect(Unit) {
-                                navController.navigate("admin") {
-                                    popUpTo("admin") { inclusive = true }
-                                    launchSingleTop = true
-                                }
-                            }
-                        } else {
-                            ProfileScreen(
-                                username = usernameArg,
-                                firebaseRepo = firebaseRepo,
-                                onProfileUpdated = { newUsername ->
-                                    if (newUsername != loggedInUser) {
-                                        loggedInUser = newUsername
-                                        navController.navigate("profile/$newUsername") {
-                                            popUpTo("profile/$usernameArg") { inclusive = true }
-                                            launchSingleTop = true
-                                        }
+                            onProfileUpdated = { newUsername ->
+                                if (newUsername != loggedInUser) {
+                                    loggedInUser = newUsername
+                                    navController.navigate("profile/$newUsername") {
+                                        popUpTo("profile/$usernameArg") { inclusive = true }
+                                        launchSingleTop = true
                                     }
                                 }
-                            )
-                        }
-                    }
-                    composable("settings") {
-                        SettingsScreen(
-                            onNavigateToAdminReports = {
-                                navController.navigate("admin-reports") {
-                                    launchSingleTop = true
-                                }
-                            }
-                        )
-                    }
-                    composable("about") {
-                        AboutUsScreen()
-                    }
-                    composable("register") {
-                        RegisterScreen(
-                            firebaseRepo = firebaseRepo,
-                            onRegisterSuccess = { newUsername ->
-                                loggedInUser = newUsername
-                                val destination = if (newUsername == ADMIN_USERNAME) "admin" else "dashboard/$newUsername"
-                                navController.navigate(destination) {
-                                    popUpTo("home") { inclusive = true }
-                                }
-                            },
-                            onBackToLogin = {
-                                navController.popBackStack()
                             }
                         )
                     }
                 }
+                composable("settings") {
+                    SettingsScreen(
+                        onNavigateToAdminReports = {
+                            navController.navigate("admin-reports") {
+                                launchSingleTop = true
+                            }
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("about") {
+                    AboutUsScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("help") {
+                    HelpScreen(
+                        loggedInUser = loggedInUser,
+                        displayUsername = displayUsername,
+                        firebaseRepo = firebaseRepo,
+                        onBack = {
+                            if (navController.previousBackStackEntry != null) {
+                                navController.popBackStack()
+                            } else {
+                                val target = if (loggedInUser != null) "dashboard/$loggedInUser" else "dashboard"
+                                navController.navigate(target) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                    )
+                }
+                composable("register") {
+                    RegisterScreen(
+                        firebaseRepo = firebaseRepo,
+                        onRegisterSuccess = { newUsername ->
+                            scope.launch {
+                                val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                val tokenResult = firebaseUser?.getIdToken(true)?.await()
+                                val isAdmin = isUserAdmin(firebaseUser?.uid, tokenResult?.claims)
+                                isAdminLoggedIn = isAdmin
+                                loggedInUser = newUsername
+                                val destination = if (isAdmin) "admin" else "dashboard/$newUsername"
+                                navController.navigate(destination) {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
+                        },
+                        onBackToLogin = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
             }
         }
+      }
     }
 }
 

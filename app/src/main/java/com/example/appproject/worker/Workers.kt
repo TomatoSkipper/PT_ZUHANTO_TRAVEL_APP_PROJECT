@@ -12,11 +12,13 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.appproject.MainActivity
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.remote.FetchPromoTripsFromWebsite
 import com.example.appproject.data.repository.FirebaseRepository
+import com.example.appproject.data.model.isUserAdmin
 import com.example.appproject.data.model.normalizeBookingStatus
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.tasks.await
 
 class PriceCheckWorker(
     private val context: Context,
@@ -59,7 +61,7 @@ fun showBookingConfirmedNotification(context: Context, booking: Booking) {
             action = Intent.ACTION_VIEW
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("navigate_to_booking_id", booking.bookingId)
-            putExtra("navigate_to_username", booking.customerUsername)
+            putExtra("navigate_to_username", booking.customerUid)
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -181,11 +183,13 @@ class BookingCheckWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            val sessionPrefs = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
-            val signedInUser = sessionPrefs.getString("signed_in_username", null)
-            if (!signedInUser.isNullOrEmpty()) {
+            val firebaseUser = FirebaseAuth.getInstance().currentUser
+            if (firebaseUser != null) {
+                val uid = firebaseUser.uid
+                val tokenResult = firebaseUser.getIdToken(true).await()
+                val isAdmin = isUserAdmin(uid, tokenResult?.claims)
                 val firebaseRepo = FirebaseRepository()
-                if (signedInUser == ADMIN_USERNAME) {
+                if (isAdmin) {
                     val allBookings = firebaseRepo.getAllBookings()
                     val prefs = context.getSharedPreferences("booking_notifications_prefs", Context.MODE_PRIVATE)
                     val isInitialized = prefs.getBoolean("admin_booking_notifications_initialized", false)
@@ -205,7 +209,7 @@ class BookingCheckWorker(
                         }
                     }
                 } else {
-                    val userBookings = firebaseRepo.getBookingsForUser(signedInUser)
+                    val userBookings = firebaseRepo.getBookingsForUser(uid)
                     userBookings.forEach { booking ->
                         if (normalizeBookingStatus(booking.status) == "Confirmed") {
                             if (!isBookingConfirmedNotified(context, booking.bookingId)) {

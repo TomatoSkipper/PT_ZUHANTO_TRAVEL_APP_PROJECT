@@ -4,19 +4,14 @@ import android.content.Context
 import android.print.PrintAttributes
 import android.print.PrintManager
 import android.text.TextUtils
-import android.util.Base64
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,27 +35,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.HighlightOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
+import com.example.appproject.ui.components.BookingCardSkeleton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -71,6 +72,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,19 +87,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.appproject.ui.theme.PrimaryBlue
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.repository.FirebaseRepository
-import com.example.appproject.data.model.VoucherStatus
 import com.example.appproject.data.model.getBookingStatusDisplay
 import com.example.appproject.data.model.getPaymentStatusDisplay
 import com.example.appproject.data.model.normalizeBookingStatus
@@ -106,44 +105,146 @@ import com.example.appproject.data.model.parseBookingDate
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
+data class ParsedBookingDetails(
+    val title: String,
+    val paxInfo: String,
+    val noteText: String
+)
+
+fun parseBookingDestinationDetails(destination: String): ParsedBookingDetails {
+    var rawTitle = destination.trim()
+    var noteText = ""
+    var paxInfo = ""
+
+    if (rawTitle.contains(" - Note: ")) {
+        val parts = rawTitle.split(" - Note: ", limit = 2)
+        rawTitle = parts[0].trim()
+        noteText = parts.getOrNull(1)?.trim().orEmpty()
+    } else if (rawTitle.contains(" Note: ")) {
+        val parts = rawTitle.split(" Note: ", limit = 2)
+        rawTitle = parts[0].trim()
+        noteText = parts.getOrNull(1)?.trim().orEmpty()
+    }
+
+    if (rawTitle.contains("(") && rawTitle.contains(")")) {
+        val startIndex = rawTitle.lastIndexOf("(")
+        val endIndex = rawTitle.lastIndexOf(")")
+        if (endIndex > startIndex) {
+            val extractedPax = rawTitle.substring(startIndex + 1, endIndex).trim()
+            paxInfo = extractedPax.lowercase()
+            rawTitle = rawTitle.substring(0, startIndex).trim()
+        }
+    }
+
+    if (paxInfo.isBlank()) {
+        paxInfo = "1 pax"
+    }
+
+    return ParsedBookingDetails(
+        title = if (rawTitle.isNotBlank()) rawTitle else destination,
+        paxInfo = paxInfo,
+        noteText = noteText
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyBookingsScreen(
     username: String,
     firebaseRepo: FirebaseRepository,
     onViewReceipt: (String) -> Unit,
     onViewInvoice: (String) -> Unit,
-    onPayNow: ((String) -> Unit)? = null
+    onPayNow: ((String) -> Unit)? = null,
+    onBack: () -> Unit = {},
+    isGuest: Boolean = false,
+    onLoginClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var bookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
     var bookingToCancel by remember { mutableStateOf<Booking?>(null) }
     var bookingToPay by remember { mutableStateOf<Booking?>(null) }
     var showRefundNotice by remember { mutableStateOf(false) }
+    var showDeletedNotice by remember { mutableStateOf(false) }
     var connectionStatus by remember { mutableStateOf("Connected") }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(!isGuest) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(username) {
-        isLoading = true
-        val test = firebaseRepo.testConnection()
-        if (test != "Connected") {
-            connectionStatus = test
+    DisposableEffect(username, isGuest) {
+        if (isGuest) {
+            onDispose {}
+        } else {
+            isLoading = true
+            scope.launch {
+                val test = firebaseRepo.testConnection()
+                if (test != "Connected") {
+                    connectionStatus = test
+                }
+            }
+            val listener = firebaseRepo.listenToBookingsForUser(username) { updatedList ->
+                bookings = updatedList
+                isLoading = false
+            }
+            onDispose {
+                listener?.remove()
+            }
         }
-        bookings = firebaseRepo.getBookingsForUser(username)
-        isLoading = false
+    }
+
+    val today = remember {
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
+    val (pastBookings, currentBookings) = remember(bookings) {
+        bookings.partition {
+            val isCancelled = normalizeBookingStatus(it.status) == "Cancelled"
+            try {
+                val date = parseBookingDate(it.bookingDate)?.time ?: 0L
+                date < today || isCancelled
+            } catch (_: Exception) {
+                isCancelled
+            }
+        }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .background(Color(0xFFF8FAFC))
     ) {
-        SectionHeader(title = stringResource(R.string.my_bookings))
-        
-        if (connectionStatus != "Connected") {
+        // Top Header
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.my_bookings),
+                fontSize = 30.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            val activeCount = currentBookings.size
+            Text(
+                text = if (activeCount == 1) stringResource(R.string.active_trip_count, activeCount)
+                       else stringResource(R.string.active_trips_count, activeCount),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF64748B)
+            )
+        }
+
+        if (connectionStatus != "Connected" && !isGuest) {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
@@ -154,16 +255,62 @@ fun MyBookingsScreen(
                 )
             }
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
 
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        if (isGuest) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ConfirmationNumber,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.to_see_the_bookings_please_login),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (onLoginClick != null) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = onLoginClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            Text(stringResource(R.string.login), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+                }
+            }
+        } else if (isLoading) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                repeat(3) {
+                    BookingCardSkeleton()
+                }
             }
         } else if (bookings.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -171,47 +318,24 @@ fun MyBookingsScreen(
                         imageVector = Icons.Default.Book,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.outline
+                        tint = Color(0xFF94A3B8)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = stringResource(R.string.no_booking_message),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.outline
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         } else {
-            val today = remember {
-                Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
-            }
-
-            val (pastBookings, currentBookings) = bookings.partition {
-                val isCancelled = normalizeBookingStatus(it.status) == "Cancelled"
-                try {
-                    val date = parseBookingDate(it.bookingDate)?.time ?: 0L
-                    date < today || isCancelled
-                } catch (_: Exception) {
-                    isCancelled
-                }
-            }
-
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
                 if (currentBookings.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = stringResource(R.string.active_booking),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
                     items(currentBookings, key = { it.bookingId }) { booking ->
                         UserBookingCard(
                             booking = booking,
@@ -234,10 +358,10 @@ fun MyBookingsScreen(
                     item {
                         Text(
                             text = stringResource(R.string.booking_history),
-                            style = MaterialTheme.typography.titleMedium,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(top = 24.dp)
+                            color = Color(0xFF64748B),
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                         )
                     }
                     items(pastBookings, key = { it.bookingId }) { booking ->
@@ -255,54 +379,365 @@ fun MyBookingsScreen(
     }
 
     bookingToCancel?.let { booking ->
-        AlertDialog(
-            onDismissRequest = { bookingToCancel = null },
-            title = { Text("${stringResource(R.string.cancel_booking)}?") },
-            text = {
-                Text(
-                    text = buildAnnotatedString {
-                        append("${stringResource(R.string.confirmation_cancel_booking)} ${booking.destination}?\n\n")
+        val isConfirmed = normalizeBookingStatus(booking.status) == "Confirmed"
+        val isPaid = normalizePaymentStatus(booking.paymentStatus) == "Paid"
+        val shouldDelete = !isConfirmed && !isPaid
 
-                        withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
-                            append("${stringResource(R.string.cancel_terms)}*")
-                        }
-                    }
+        // Parse trip title and pax details
+        val (tripTitle, paxLabelText) = remember(booking.destination) {
+            val destClean = booking.destination.split(" - Note:").firstOrNull() ?: booking.destination
+            if (destClean.contains(" (") && destClean.endsWith(")")) {
+                val parts = destClean.split(" (")
+                val name = parts[0]
+                val pax = parts[1].removeSuffix(")")
+                Pair(name, pax)
+            } else {
+                Pair(destClean, "")
+            }
+        }
+
+        val descriptionText = remember(isConfirmed, isPaid) {
+            if (!isConfirmed && !isPaid) {
+                context.getString(R.string.cancel_desc_unconfirmed_unpaid)
+            } else if (isPaid) {
+                context.getString(R.string.cancel_desc_confirmed_paid)
+            } else {
+                context.getString(R.string.cancel_desc_confirmed_unpaid)
+            }
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = { bookingToCancel = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 12.dp, bottom = 4.dp)
+                        .width(36.dp)
+                        .height(4.dp)
+                        .background(Color(0xFFCBD5E1), CircleShape)
                 )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        scope.launch {
-                            val cancelledBooking = booking.copy(status = "Cancelled")
-                            firebaseRepo.updateBooking(cancelledBooking)
-                            bookings = bookings.map { if (it.bookingId == cancelledBooking.bookingId) cancelledBooking else it }
-                            bookingToCancel = null
-                            showRefundNotice = true
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Warning Icon in soft red circular badge
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFFEE2E2),
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+
+                // Title
+                Text(
+                    text = stringResource(R.string.cancel_this_booking),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF0F172A)
+                )
+
+                // Trip Summary Card
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = tripTitle,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        if (paxLabelText.isNotBlank()) {
+                            Text(
+                                text = paxLabelText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Booking Status Tag
+                            val bookingTagText = if (isConfirmed) stringResource(R.string.confirmed) else stringResource(R.string.not_confirmed_yet)
+                            val bookingTagColor = if (isConfirmed) Color(0xFF047857) else Color(0xFFD97706)
+                            Text(
+                                text = bookingTagText,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = bookingTagColor
+                            )
+
+                            // Payment Status Tag
+                            val paymentTagText = if (isPaid) stringResource(R.string.paid) else stringResource(R.string.not_paid)
+                            val paymentTagColor = if (isPaid) Color(0xFF047857) else Color(0xFF2563EB)
+                            Text(
+                                text = paymentTagText,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = paymentTagColor
+                            )
                         }
                     }
-                ) {
-                    Text(stringResource(R.string.cancel_booking))
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { bookingToCancel = null }) {
-                    Text(stringResource(R.string.keep_booking))
+
+                // Explanation Text
+                Text(
+                    text = descriptionText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF475569),
+                    lineHeight = 20.sp
+                )
+
+                // Action Buttons
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                if (shouldDelete) {
+                                    firebaseRepo.deleteBooking(booking.bookingId)
+                                    bookings = bookings.filter { it.bookingId != booking.bookingId }
+                                    bookingToCancel = null
+                                    showDeletedNotice = true
+                                } else {
+                                    val cancelledBooking = booking.copy(status = "Cancelled")
+                                    firebaseRepo.updateBooking(cancelledBooking)
+                                    bookings = bookings.map { if (it.bookingId == cancelledBooking.bookingId) cancelledBooking else it }
+                                    bookingToCancel = null
+                                    showRefundNotice = true
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFDC2626),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.yes_cancel_booking),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = { bookingToCancel = null },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Text(
+                            text = stringResource(R.string.keep_my_booking),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2563EB)
+                        )
+                    }
                 }
             }
-        )
+        }
     }
 
     if (showRefundNotice) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { showRefundNotice = false },
-            title = { Text(stringResource(R.string.booking_cancelled)) },
-            text = { Text(stringResource(R.string.refund)) },
-            confirmButton = {
-                TextButton(onClick = { showRefundNotice = false }) {
-                    Text("OKAY")
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = Color.White,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Double concentric blue circles checkmark badge
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(Color(0xFFDBEAFE), CircleShape)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(Color(0xFF2563EB), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    // Title & Subtitle
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.booking_cancelled),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0F172A),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = stringResource(R.string.cancel_success_refund_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Done Button
+                    Button(
+                        onClick = { showRefundNotice = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1D4ED8),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.done),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
-        )
+        }
+    }
+
+    if (showDeletedNotice) {
+        Dialog(
+            onDismissRequest = { showDeletedNotice = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = Color.White,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Double concentric blue circles checkmark badge
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(Color(0xFFDBEAFE), CircleShape)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(Color(0xFF2563EB), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    // Title & Subtitle
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.booking_cancelled),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0F172A),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = stringResource(R.string.cancel_success_deleted_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Done Button
+                    Button(
+                        onClick = { showDeletedNotice = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1D4ED8),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.done),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
     }
 
     bookingToPay?.let { booking ->
@@ -334,204 +769,501 @@ fun UserBookingCard(
     isHistory: Boolean = false
 ) {
     val context = LocalContext.current
+    val details = remember(booking.destination) { parseBookingDestinationDetails(booking.destination) }
+    val normStatus = normalizeBookingStatus(booking.status)
+    val normPayment = normalizePaymentStatus(booking.paymentStatus)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (isHistory) 0.7f else 1f),
+            .alpha(if (isHistory) 0.85f else 1f),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Card Body Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = booking.destination,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (isHistory) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = stringResource(R.string.booking_id_format, booking.bookingId),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-                PaymentStatusBadge(status = booking.paymentStatus)
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(modifier = Modifier.alpha(0.3f))
-            Spacer(modifier = Modifier.height(12.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = booking.bookingDate, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = booking.customerPhone, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val normStatus = normalizeBookingStatus(booking.status)
-                val displayStatus = getBookingStatusDisplay(booking.status)
-
-                val (statusIcon, statusColor) = when {
-                    normStatus == "Cancelled" -> Pair(Icons.Default.Close, MaterialTheme.colorScheme.error)
-                    isHistory -> Pair(Icons.Default.CheckCircle, MaterialTheme.colorScheme.outline)
-                    normStatus == "Confirmed" -> Pair(Icons.Default.CheckCircle, Color(0xFF4CAF50))
-                    else -> Pair(Icons.Default.Info, MaterialTheme.colorScheme.error)
-                }
-                Icon(statusIcon, contentDescription = null, modifier = Modifier.size(18.dp), tint = statusColor)
-                Spacer(modifier = Modifier.width(8.dp))
+                // Title
                 Text(
-                    text = when {
-                        normStatus == "Cancelled" -> stringResource(R.string.cancelled)
-                        isHistory -> stringResource(R.string.completed)
-                        else -> stringResource(R.string.status_format, displayStatus)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = statusColor
+                    text = details.title,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF0F172A)
                 )
-            }
 
-            val normStatus = normalizeBookingStatus(booking.status)
-            val normPayment = normalizePaymentStatus(booking.paymentStatus)
+                // Subtitle: Pax & Booking ID
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${details.paxInfo}, ${stringResource(R.string.booking_id_format, booking.bookingId)}",
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF64748B)
+                )
 
-            if (!isHistory && normPayment != "Paid" && normStatus == "Pending") {
-                Spacer(modifier = Modifier.height(8.dp))
+                // Details Row: Date & Phone
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Date
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = booking.bookingDate,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
+
+                    // Phone
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = booking.customerPhone,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
+                }
+
+                // 3-Step Process Stepper
+                Spacer(modifier = Modifier.height(20.dp))
+                BookingStatusStepper(
+                    bookingStatus = booking.status,
+                    paymentStatus = booking.paymentStatus
+                )
+
+                // Note Box (if customer note is present)
+                if (details.noteText.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFF1F5F9)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = Color(0xFF475569),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.your_note_to_our_team),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF475569)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = details.noteText,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+                    }
+                }
+
+                // Informational Alert Box
+                Spacer(modifier = Modifier.height(16.dp))
+                val infoMessage = when {
+                    normStatus == "Cancelled" -> stringResource(R.string.booking_cancelled)
+                    normPayment == "Paid" -> stringResource(R.string.payment_success_message)
+                    normStatus == "Confirmed" -> stringResource(R.string.confirmed_unpaid)
+                    else -> stringResource(R.string.pay_now_notice)
+                }
+
                 Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFEBF3FF)
                 ) {
                     Row(
-                        modifier = Modifier.padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
                         Icon(
-                            Icons.Default.Info,
+                            imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = stringResource(R.string.pay_now_notice),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            text = infoMessage,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF1E3A8A),
+                            lineHeight = 18.sp
                         )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (normStatus != "Cancelled" && normPayment != "Paid") {
-                        OutlinedButton(
-                            onClick = { onViewInvoice(booking.bookingId) },
-                            shape = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.invoice),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
+                // Action Buttons Section
+                Spacer(modifier = Modifier.height(20.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     if (normPayment == "Paid") {
-                        OutlinedButton(
-                            onClick = { onViewReceipt(booking.bookingId) },
-                            shape = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(
-                                text = stringResource(R.string.receipt),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                            OutlinedButton(
+                                onClick = { onViewReceipt(booking.bookingId) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Receipt,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.receipt),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2563EB),
+                                    fontSize = 14.sp
+                                )
+                            }
 
-                        if (isHistory) {
                             OutlinedButton(
                                 onClick = { printReceipt(context, booking) },
+                                modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(16.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                contentPadding = PaddingValues(vertical = 12.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Print,
                                     contentDescription = null,
+                                    tint = Color(0xFF2563EB),
                                     modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = stringResource(R.string.print),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2563EB),
+                                    fontSize = 14.sp
                                 )
                             }
                         }
-                    }
 
-                    if (!isHistory && normPayment != "Paid") {
-                        if (normStatus == "Confirmed") {
-                            Button(
-                                onClick = onPayNow,
+                        if (normStatus != "Cancelled" && !isHistory) {
+                            OutlinedButton(
+                                onClick = onCancel,
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                                contentPadding = PaddingValues(vertical = 12.dp)
                             ) {
+                                Icon(
+                                    imageVector = Icons.Default.HighlightOff,
+                                    contentDescription = null,
+                                    tint = Color(0xFFB91C1C),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = stringResource(R.string.pay_now),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    text = stringResource(R.string.cancel_booking),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFB91C1C),
+                                    fontSize = 14.sp
                                 )
                             }
                         }
-
-                        FilledTonalIconButton(
-                            onClick = onCancel,
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    } else if (normStatus != "Cancelled") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Cancel booking",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                            OutlinedButton(
+                                onClick = { onViewInvoice(booking.bookingId) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Description,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.invoice),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2563EB),
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            if (normStatus == "Confirmed") {
+                                Button(
+                                    onClick = onPayNow,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                                    contentPadding = PaddingValues(vertical = 12.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.pay_now),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = onCancel,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                                    contentPadding = PaddingValues(vertical = 12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.HighlightOff,
+                                        contentDescription = null,
+                                        tint = Color(0xFFB91C1C),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.cancel_booking),
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFB91C1C),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        if (normStatus == "Confirmed" && !isHistory) {
+                            OutlinedButton(
+                                onClick = onCancel,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.HighlightOff,
+                                    contentDescription = null,
+                                    tint = Color(0xFFB91C1C),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.cancel_booking),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFB91C1C),
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            if (normStatus == "Confirmed") {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(modifier = Modifier.alpha(0.2f))
-                RateTripSection(booking = booking, firebaseRepo = firebaseRepo, isHistory = isHistory)
+                if (normStatus == "Confirmed" && isHistory) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(modifier = Modifier.alpha(0.2f))
+                    RateTripSection(booking = booking, firebaseRepo = firebaseRepo, isHistory = isHistory)
+                }
             }
         }
     }
+}
+
+@Composable
+fun BookingStatusStepper(
+    bookingStatus: String,
+    paymentStatus: String,
+    modifier: Modifier = Modifier
+) {
+    val normStatus = normalizeBookingStatus(bookingStatus)
+    val normPayment = normalizePaymentStatus(paymentStatus)
+
+    val step1State = 2 // Requested is always completed
+    val step2State = when {
+        normStatus == "Cancelled" -> -1
+        normStatus == "Confirmed" || normStatus == "Completed" || normPayment == "Paid" -> 2
+        else -> 1 // Pending admin confirm
+    }
+    val step3State = when {
+        normStatus == "Cancelled" -> 0
+        normPayment == "Paid" -> 2
+        normStatus == "Confirmed" -> 1 // Admin confirmed, ready to pay
+        else -> 0 // Unreached
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
+            StepNodeItem(
+                label = stringResource(R.string.requested),
+                state = step1State
+            )
+        }
+
+        StepLine(
+            isCompleted = step2State > 0,
+            modifier = Modifier
+                .weight(0.7f)
+                .padding(top = 11.dp)
+        )
+
+        Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.TopCenter) {
+            StepNodeItem(
+                label = stringResource(R.string.admin_confirms),
+                state = step2State
+            )
+        }
+
+        StepLine(
+            isCompleted = step3State > 0,
+            modifier = Modifier
+                .weight(0.7f)
+                .padding(top = 11.dp)
+        )
+
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
+            StepNodeItem(
+                label = stringResource(R.string.payment),
+                state = step3State
+            )
+        }
+    }
+}
+
+@Composable
+fun StepNodeItem(
+    label: String,
+    state: Int,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier.size(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            when (state) {
+                2 -> { // Completed
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF1D4ED8), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+                1 -> { // Active / In progress
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White, CircleShape)
+                            .border(2.dp, Color(0xFF1D4ED8), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(Color(0xFF1D4ED8), CircleShape)
+                        )
+                    }
+                }
+                -1 -> { // Cancelled
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFDC2626), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+                else -> { // Unreached (0)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White, CircleShape)
+                            .border(1.5.dp, Color(0xFFCBD5E1), CircleShape)
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (state != 0) FontWeight.Bold else FontWeight.Medium,
+            color = if (state == -1) Color(0xFFDC2626) else if (state != 0) Color(0xFF0F172A) else Color(0xFF94A3B8),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+fun StepLine(
+    isCompleted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(2.dp)
+            .background(if (isCompleted) Color(0xFF1D4ED8) else Color(0xFFE2E8F0))
+    )
 }
 
 @Composable
@@ -570,9 +1302,13 @@ fun ReceiptScreen(
     val context = LocalContext.current
     var booking by remember { mutableStateOf<Booking?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAuthorized by remember { mutableStateOf(true) }
 
-    LaunchedEffect(bookingId) {
+    LaunchedEffect(bookingId, loggedInUser) {
         booking = firebaseRepo.getBooking(bookingId)
+        if (booking != null) {
+            isAuthorized = firebaseRepo.isUserAuthorizedForBooking(booking, loggedInUser)
+        }
         isLoading = false
     }
 
@@ -596,14 +1332,20 @@ fun ReceiptScreen(
         }
     ) { innerPadding ->
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                BookingCardSkeleton()
             }
         } else if (booking == null) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.receipt_not_found))
             }
-        } else if (loggedInUser != booking!!.customerUsername && loggedInUser != ADMIN_USERNAME) {
+        } else if (!isAuthorized) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.access_denied))
             }
@@ -878,9 +1620,13 @@ fun InvoiceScreen(
     val context = LocalContext.current
     var booking by remember { mutableStateOf<Booking?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAuthorized by remember { mutableStateOf(true) }
 
-    LaunchedEffect(bookingId) {
+    LaunchedEffect(bookingId, loggedInUser) {
         booking = firebaseRepo.getBooking(bookingId)
+        if (booking != null) {
+            isAuthorized = firebaseRepo.isUserAuthorizedForBooking(booking, loggedInUser)
+        }
         isLoading = false
     }
 
@@ -904,14 +1650,20 @@ fun InvoiceScreen(
         }
     ) { innerPadding ->
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                BookingCardSkeleton()
             }
         } else if (booking == null) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.invoice_not_found))
             }
-        } else if (loggedInUser != booking!!.customerUsername && loggedInUser != ADMIN_USERNAME) {
+        } else if (!isAuthorized) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.access_denied))
             }

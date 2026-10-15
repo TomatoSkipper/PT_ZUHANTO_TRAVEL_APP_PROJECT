@@ -21,16 +21,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Discount
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -69,7 +76,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.appproject.R
-import com.example.appproject.data.model.ADMIN_USERNAME
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.repository.FirebaseRepository
 import com.example.appproject.ui.theme.AppTheme
@@ -84,7 +90,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.NumberFormat
 import java.util.Locale
 
 class PaymentScreen : ComponentActivity() {
@@ -98,7 +103,12 @@ class PaymentScreen : ComponentActivity() {
         PaymentConfiguration.init(applicationContext, publishableKey)
 
         val bookingId = intent.getStringExtra("BOOKING_ID") ?: ""
-        val loggedInUser = intent.getStringExtra("LOGGED_IN_USER") ?: ""
+        val loggedInUserExtra = intent.getStringExtra("LOGGED_IN_USER")
+        val loggedInUser = if (!loggedInUserExtra.isNullOrBlank()) {
+            loggedInUserExtra
+        } else {
+            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        }
         val firebaseRepo = FirebaseRepository()
 
         setContent {
@@ -141,6 +151,7 @@ fun PaymentScreen(
 
     var booking by remember { mutableStateOf<Booking?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAuthorized by remember { mutableStateOf(true) }
     var isProcessingPayment by remember { mutableStateOf(false) }
     var paymentSuccessDialog by remember { mutableStateOf(false) }
 
@@ -160,7 +171,6 @@ fun PaymentScreen(
     val invalidVoucherMsg = stringResource(R.string.invalid_voucher)
 
     val publishableKey = "pk_test_51UNOmW984JcO38MUl2fQbGvBbgnCyLVaPdPhwlUTMSR1dXkjrZzV8Gl5VV96wZKTtv2UUaVOqFcy48zCvgpr3FpH00mrOstu0x"
-    val secretKey = ""
 
     // Stripe PaymentSheet integration
     val paymentSheet = rememberPaymentSheet { result ->
@@ -197,12 +207,13 @@ fun PaymentScreen(
         }
     }
 
-    LaunchedEffect(bookingId) {
+    LaunchedEffect(bookingId, loggedInUser) {
         PaymentConfiguration.init(context, publishableKey)
         if (bookingId.isNotBlank()) {
             val fetched = firebaseRepo.getBooking(bookingId)
             booking = fetched
             if (fetched != null) {
+                isAuthorized = firebaseRepo.isUserAuthorizedForBooking(fetched, loggedInUser)
                 if (fetched.voucherUsed.isNotBlank()) {
                     appliedVoucherCode = fetched.voucherUsed
                     discountValue = parseCurrencyToDouble(fetched.discountAmount)
@@ -307,7 +318,7 @@ fun PaymentScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
             }
-        } else if (loggedInUser != null && loggedInUser != booking!!.customerUsername && loggedInUser != ADMIN_USERNAME) {
+        } else if (!isAuthorized) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -354,9 +365,14 @@ fun PaymentScreen(
                                 it["code"]?.toString()?.equals(code, ignoreCase = true) == true
                             }
                             if (matched != null) {
+                                val targetUserForVoucher = currentBooking.customerUid.ifBlank {
+                                    currentBooking.customerUsername.ifBlank {
+                                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                                    }
+                                }
                                 val isUsed = firebaseRepo.isVoucherUsedByUser(
                                     code,
-                                    loggedInUser ?: currentBooking.customerUsername
+                                    targetUserForVoucher
                                 )
                                 if (isUsed) {
                                     voucherMessage = voucherAlreadyUsedMsg
@@ -434,14 +450,13 @@ fun PaymentScreen(
                             } else {
                                 createStripePaymentIntent(
                                     calculatedFinalPrice,
-                                    secretKey,
+                                    com.example.appproject.BuildConfig.STRIPE_SECRET_KEY,
                                     currency = targetCurrency
                                 )
                             }
 
-                            isProcessingPayment = false
-
                             if (!clientSecret.isNullOrBlank()) {
+                                isProcessingPayment = false
                                 try {
                                     val config = PaymentSheet.Configuration(
                                         merchantDisplayName = "PT ZUHANTO TRAVEL INDONESIA"
@@ -451,6 +466,7 @@ fun PaymentScreen(
                                         config
                                     )
                                 } catch (e: Exception) {
+                                    isProcessingPayment = false
                                     Log.e(
                                         "PaymentScreen",
                                         "Error launching PaymentSheet",
@@ -463,6 +479,7 @@ fun PaymentScreen(
                                     ).show()
                                 }
                             } else {
+                                isProcessingPayment = false
                                 Log.e("PaymentScreen", "Stripe Error: ${errorMsg ?: "Failed to generate client secret"}")
                                 Toast.makeText(
                                     context,
@@ -499,85 +516,249 @@ fun PaymentScreen(
 
     // Success Dialog
     if (paymentSuccessDialog && booking != null) {
-        AlertDialog(
+        val b = booking!!
+        val paymentMethodDisplay = remember(b.paymentMethod) {
+            val pm = b.paymentMethod.lowercase()
+            when {
+                pm.contains("card") || pm.contains("stripe") -> "Credit / debit card"
+                pm.contains("bank") || pm.contains("transfer") -> "Bank transfer"
+                pm.contains("wallet") || pm.contains("qris") -> "E-Wallet / QRIS"
+                else -> b.paymentMethod.ifBlank { "Credit / debit card" }
+            }
+        }
+
+        Dialog(
             onDismissRequest = { paymentSuccessDialog = false },
-            icon = {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.payment_successful),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = Color.White,
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .padding(16.dp)
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = stringResource(R.string.payment_success_message),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    // Top Double Circle Checkmark Badge
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(Color(0xFFE6F4EA), CircleShape)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(Color(0xFF059669), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    // Title & Subtitle
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.payment_successful),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF0F172A),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = stringResource(R.string.thank_you_paid),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Details Card Container
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFF0F6FF),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Booking ID: #${booking!!.bookingId}", fontWeight = FontWeight.Bold)
-                            Text("Destination: ${booking!!.destination}")
-                            Text("Amount Paid: ${booking!!.finalPrice}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                            Text("Method: ${booking!!.paymentMethod}")
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Booking ID
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.booking_id),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF64748B)
+                                )
+                                Text(
+                                    text = "#${b.bookingId}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+
+                            HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                            // Package
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.package_label),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF64748B)
+                                )
+                                Text(
+                                    text = b.destination.split(" - Note:").firstOrNull() ?: b.destination,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A),
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.widthIn(max = 180.dp)
+                                )
+                            }
+
+                            HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                            // Paid with
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.paid_with),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF64748B)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CreditCard,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0F172A),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = paymentMethodDisplay,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                            // Amount paid
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.amount_paid),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF64748B)
+                                )
+                                Text(
+                                    text = b.finalPrice,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF1D4ED8)
+                                )
+                            }
+                        }
+                    }
+
+                    // Primary Action Button (Go to my bookings)
+                    Button(
+                        onClick = {
+                            paymentSuccessDialog = false
+                            if (onRedirectToBookings != null) {
+                                onRedirectToBookings()
+                            } else if (onViewReceipt != null) {
+                                onViewReceipt(b.bookingId)
+                            } else {
+                                onBack()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1D4ED8),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.go_to_my_bookings),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Secondary Action Button (View invoice)
+                    TextButton(
+                        onClick = {
+                            paymentSuccessDialog = false
+                            if (onViewInvoice != null) {
+                                onViewInvoice(b.bookingId)
+                            } else {
+                                onBack()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Description,
+                                contentDescription = null,
+                                tint = Color(0xFF1D4ED8),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.view_invoice),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1D4ED8)
+                            )
                         }
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        paymentSuccessDialog = false
-                        if (onRedirectToBookings != null) {
-                            onRedirectToBookings()
-                        } else if (onViewReceipt != null) {
-                            onViewReceipt(booking!!.bookingId)
-                        } else {
-                            onBack()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Go to Bookings")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        paymentSuccessDialog = false
-                        if (onViewInvoice != null) {
-                            onViewInvoice(booking!!.bookingId)
-                        } else {
-                            onBack()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.view_invoice))
-                }
             }
-        )
+        }
     }
 }
 
@@ -1017,9 +1198,14 @@ private suspend fun processPaymentCompletion(
     firebaseRepo.updateBooking(updatedBooking)
 
     // Mark voucher as used if applicable
-    if (appliedVoucher.isNotBlank() && booking.customerUsername.isNotBlank()) {
+    val uidToRecord = booking.customerUid.ifBlank {
+        booking.customerUsername.ifBlank {
+            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        }
+    }
+    if (appliedVoucher.isNotBlank() && uidToRecord.isNotBlank()) {
         try {
-            firebaseRepo.recordVoucherUsage(appliedVoucher, booking.customerUsername)
+            firebaseRepo.recordVoucherUsage(appliedVoucher, uidToRecord)
         } catch (_: Exception) {}
     }
 
@@ -1033,8 +1219,7 @@ private fun parseCurrencyToDouble(priceStr: String): Double {
 }
 
 private fun formatCurrency(amount: Double): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
-    return formatter.format(amount).replace("Rp", "Rp ").trim()
+    return "IDR " + String.format(Locale.US, "%,d", amount.toLong())
 }
 
 

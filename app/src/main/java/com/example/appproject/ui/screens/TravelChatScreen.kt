@@ -1,6 +1,7 @@
 package com.example.appproject.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,20 +12,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,23 +40,30 @@ import coil.compose.AsyncImage
 import com.example.appproject.R
 import com.example.appproject.data.model.ChatMessage
 import com.example.appproject.data.model.SuggestionItem
-import com.example.appproject.ui.theme.PrimaryBlue
-import com.example.appproject.ui.theme.WarmAmberGold
 import com.example.appproject.ui.viewmodel.TravelChatViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TravelChatScreen(
     destination: String = stringResource(R.string.general_travel),
     days: Int = 3,
     currentItinerary: List<String> = emptyList(),
     onBack: (() -> Unit)? = null,
+    onNavigateToHelp: (() -> Unit)? = null,
     viewModel: TravelChatViewModel = viewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+
+    val defaultTravel = stringResource(R.string.general_travel)
+    val displayDestination = remember(destination, defaultTravel) {
+        if (destination.isNotBlank() && !destination.equals(defaultTravel, ignoreCase = true)) {
+            destination
+        } else {
+            "Bromo Sunrise Package"
+        }
+    }
 
     LaunchedEffect(destination) {
         viewModel.initializeChat(destination)
@@ -62,30 +77,65 @@ fun TravelChatScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                color = Color.White,
+                shadowElevation = 0.5.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Back Arrow Button in Circular Gray Surface
                         Surface(
                             shape = CircleShape,
-                            color = PrimaryBlue,
-                            modifier = Modifier.size(38.dp)
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .clickable { onBack?.invoke() }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color(0xFF1E293B),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Sparkle AI Avatar
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF2563EB),
+                            modifier = Modifier.size(42.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     Icons.Default.AutoAwesome,
                                     contentDescription = null,
-                                    tint = WarmAmberGold,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
+
                         Spacer(modifier = Modifier.width(10.dp))
+
                         Column {
                             Text(
                                 text = stringResource(R.string.ai_travel_assistant),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryBlue
+                                color = Color(0xFF0F172A)
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
@@ -93,53 +143,127 @@ fun TravelChatScreen(
                                     color = Color(0xFF10B981),
                                     modifier = Modifier.size(8.dp)
                                 ) {}
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = if (destination.isNotBlank() && !destination.equals(stringResource(R.string.general_travel), ignoreCase = true)) {
-                                        "Online • $destination"
-                                    } else {
-                                        "Online"
-                                    },
+                                    text = "Online",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
+                                    color = Color(0xFF64748B),
+                                    fontSize = 12.sp
                                 )
                             }
                         }
                     }
-                },
-                navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Location Pill Badge
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFFEFF6FF),
+                        modifier = Modifier.padding(start = 52.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
                             Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = PrimaryBlue
+                                Icons.Default.Place,
+                                contentDescription = null,
+                                tint = Color(0xFF2563EB),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = displayDestination,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF2563EB)
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
+                }
+            }
+        },
+        containerColor = Color(0xFFF8FAFC)
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color(0xFFF8FAFC))
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            // Chat Messages List
+            // Chat Messages & Starter Options List
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 8.dp)
             ) {
                 items(messages, key = { it.id }) { message ->
                     ChatMessageItem(message = message)
+                }
+
+                // Show "Try asking" Section when chat is in initial state
+                if (messages.size <= 1 && !isLoading) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "Try asking",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64748B),
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                            )
+
+                            StarterCardItem(
+                                icon = Icons.Default.AccountBalance,
+                                title = "Best places to visit",
+                                subtitle = "Sights and viewpoints nearby",
+                                onClick = {
+                                    viewModel.sendMessage(
+                                        "What are the best places to visit in $displayDestination?",
+                                        displayDestination,
+                                        days,
+                                        currentItinerary
+                                    )
+                                }
+                            )
+
+                            StarterCardItem(
+                                icon = Icons.Default.Hotel,
+                                title = "Where to stay",
+                                subtitle = "Hotels and homestays",
+                                onClick = {
+                                    viewModel.sendMessage(
+                                        "Where are the best places to stay in $displayDestination?",
+                                        displayDestination,
+                                        days,
+                                        currentItinerary
+                                    )
+                                }
+                            )
+
+                            StarterCardItem(
+                                icon = Icons.Default.Restaurant,
+                                title = "Where to eat",
+                                subtitle = "Local food and cafes",
+                                onClick = {
+                                    viewModel.sendMessage(
+                                        "What are the best places to eat in $displayDestination?",
+                                        displayDestination,
+                                        days,
+                                        currentItinerary
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
 
                 if (isLoading) {
@@ -151,106 +275,187 @@ fun TravelChatScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = PrimaryBlue
+                                color = Color(0xFF2563EB)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = stringResource(R.string.ai_is_thinking),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color(0xFF64748B)
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            val bestPlace = stringResource(R.string.best_place_to_visit)
-            val bestPlacePrompt = stringResource(R.string.best_place_to_visit_prompt)
-            val whereToStay = stringResource(R.string.where_to_stay)
-            val whereToStayPrompt = stringResource(R.string.where_to_stay_prompt)
-            val bestPlaceToEat = stringResource(R.string.best_place_to_eat)
-            val bestPlaceToEatPrompt = stringResource(R.string.best_place_to_eat_prompt)
-            val cafesAndHiddenGems = stringResource(R.string.cafes_and_hidden_gems)
-            val cafesAndHiddenGemsPrompt = stringResource(R.string.cafes_and_hidden_gems_prompt)
-            val sampleItinerary = stringResource(R.string.sample_itinerary)
-            val sampleItineraryPrompt = stringResource(R.string.sample_itinerary_prompt)
-
-            // Quick Suggestion Filter Chips Bar
-            val quickPrompts = remember(destination) {
-                listOf(
-                    "🏛️ $bestPlace" to "$bestPlacePrompt $destination?",
-                    "🏨 $whereToStay" to "$whereToStayPrompt $destination?",
-                    "🍽️ $bestPlaceToEat" to "$bestPlaceToEatPrompt $destination?",
-                    "☕ $cafesAndHiddenGems" to "$cafesAndHiddenGemsPrompt $destination.",
-                    "📅 $sampleItinerary" to "$sampleItineraryPrompt $destination."
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                quickPrompts.forEach { (label, prompt) ->
-                    SuggestionChip(
-                        onClick = {
-                            viewModel.sendMessage(prompt, destination, days, currentItinerary)
-                        },
-                        label = {
+            // Quick Follow-Up Filter Chips (Shown after initial conversation)
+            if (messages.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        "Where to stay" to "Where are the best places to stay in $displayDestination?",
+                        "Where to eat" to "What are the best places to eat in $displayDestination?",
+                        "Best places to visit" to "What are the best places to visit in $displayDestination?"
+                    ).forEach { (label, prompt) ->
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.White,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable {
+                                    viewModel.sendMessage(prompt, displayDestination, days, currentItinerary)
+                                }
+                        ) {
                             Text(
                                 text = label,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF2563EB),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             )
-                        },
-                        shape = RoundedCornerShape(18.dp),
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            labelColor = PrimaryBlue
-                        )
-                    )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-
             // Input Field & Send Button
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text(stringResource(R.string.sample_prompt)) },
-                    shape = RoundedCornerShape(24.dp),
+                    placeholder = {
+                        Text(
+                            text = "Ask about places to visit, stay or eat",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 14.sp
+                        )
+                    },
+                    shape = RoundedCornerShape(28.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        disabledContainerColor = Color.White,
+                        focusedBorderColor = Color(0xFF2563EB),
+                        unfocusedBorderColor = Color(0xFFE2E8F0)
+                    ),
                     maxLines = 3
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = {
-                        if (inputText.isNotBlank()) {
-                            val textToSend = inputText
-                            inputText = ""
-                            viewModel.sendMessage(textToSend, destination, days, currentItinerary)
-                        }
-                    },
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF1D61E7),
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(PrimaryBlue)
+                        .clickable {
+                            if (inputText.isNotBlank()) {
+                                val textToSend = inputText
+                                inputText = ""
+                                viewModel.sendMessage(textToSend, displayDestination, days, currentItinerary)
+                            }
+                        }
                 ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            // Disclaimer Footer
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "AI can make mistakes. For bookings, please ",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF64748B),
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "talk to our team.",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1D61E7),
+                    fontSize = 12.sp,
+                    modifier = Modifier.clickable {
+                        onNavigateToHelp?.invoke()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StarterCardItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFEFF6FF),
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Default.Send,
-                        contentDescription = "Send",
-                        tint = Color.White
+                        icon,
+                        contentDescription = null,
+                        tint = Color(0xFF2563EB),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color(0xFF0F172A)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 13.sp,
+                    color = Color(0xFF64748B)
+                )
             }
         }
     }
@@ -261,59 +466,102 @@ fun ChatMessageItem(
     message: ChatMessage
 ) {
     val alignment = if (message.isUser) Alignment.End else Alignment.Start
-    val containerColor = if (message.isUser) {
-        PrimaryBlue
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val textColor = if (message.isUser) {
-        Color.White
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = alignment
     ) {
-        // Text Bubble
-        Surface(
-            shape = RoundedCornerShape(
-                topStart = 18.dp,
-                topEnd = 18.dp,
-                bottomStart = if (message.isUser) 18.dp else 4.dp,
-                bottomEnd = if (message.isUser) 4.dp else 18.dp
-            ),
-            color = containerColor,
-            shadowElevation = if (message.isUser) 2.dp else 1.dp,
-            modifier = Modifier.widthIn(max = 300.dp)
-        ) {
-            Text(
-                text = message.text,
-                modifier = Modifier.padding(14.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = textColor,
-                lineHeight = 20.sp
-            )
-        }
-
-        // Suggestions List (if AI returns recommendation items)
-        val itemsToDisplay = remember(message) {
-            when {
-                message.suggestionsList.isNotEmpty() -> message.suggestionsList
-                message.suggestion != null -> listOf(message.suggestion)
-                else -> emptyList()
-            }
-        }
-
-        if (itemsToDisplay.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(
-                modifier = Modifier.widthIn(max = 300.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        if (message.isUser) {
+            // User Message Bubble
+            Surface(
+                shape = RoundedCornerShape(
+                    topStart = 20.dp,
+                    topEnd = 20.dp,
+                    bottomStart = 20.dp,
+                    bottomEnd = 6.dp
+                ),
+                color = Color(0xFF1D61E7),
+                shadowElevation = 0.5.dp,
+                modifier = Modifier.widthIn(max = 310.dp)
             ) {
-                itemsToDisplay.forEach { item ->
-                    SuggestionCardItem(item = item)
+                Text(
+                    text = message.text,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp
+                    ),
+                    color = Color.White
+                )
+            }
+        } else {
+            // AI Message Row with Sparkle Avatar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.Top
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF3B82F6),
+                    modifier = Modifier
+                        .size(30.dp)
+                        .padding(top = 4.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column(modifier = Modifier.weight(1f, fill = false)) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shadowElevation = 0.5.dp,
+                        modifier = Modifier.widthIn(max = 320.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            // AI Message Text with Markdown Bold Parsing
+                            Text(
+                                text = parseMarkdownBold(message.text),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 14.sp,
+                                    lineHeight = 21.sp
+                                ),
+                                color = Color(0xFF1E293B)
+                            )
+
+                            // Suggestions List embedded inside AI Card
+                            val itemsToDisplay = remember(message) {
+                                when {
+                                    message.suggestionsList.isNotEmpty() -> message.suggestionsList
+                                    message.suggestion != null -> listOf(message.suggestion)
+                                    else -> emptyList()
+                                }
+                            }
+
+                            if (itemsToDisplay.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                HorizontalDivider(color = Color(0xFFF1F5F9))
+
+                                itemsToDisplay.forEachIndexed { index, item ->
+                                    RecommendationRowItem(item = item, index = index)
+                                    if (index < itemsToDisplay.size - 1) {
+                                        HorizontalDivider(color = Color(0xFFF1F5F9))
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -321,86 +569,85 @@ fun ChatMessageItem(
 }
 
 @Composable
-fun SuggestionCardItem(
-    item: SuggestionItem
+fun RecommendationRowItem(
+    item: SuggestionItem,
+    index: Int
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        shape = RoundedCornerShape(16.dp)
+    val gradientColors = remember(index) {
+        when (index % 3) {
+            0 -> listOf(Color(0xFFF97316), Color(0xFFFDBA74)) // Orange/Peach
+            1 -> listOf(Color(0xFF334155), Color(0xFF475569)) // Dark Slate Blue
+            else -> listOf(Color(0xFF528562), Color(0xFF6B9F7B)) // Muted Green
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        // Left Thumbnail Box
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Brush.linearGradient(gradientColors)),
+            contentAlignment = Alignment.Center
+        ) {
             if (item.imageUrl.isNotBlank()) {
                 AsyncImage(
                     model = item.imageUrl,
                     contentDescription = item.title,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+            } else {
+                Icon(
+                    imageVector = when (item.category.lowercase()) {
+                        "stay" -> Icons.Default.Hotel
+                        "eat" -> Icons.Default.Restaurant
+                        else -> Icons.Default.Place
+                    },
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(24.dp)
+                )
             }
+        }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                val (categoryIcon, categoryColor) = when (item.category.lowercase()) {
-                    "stay" -> Icons.Default.Home to PrimaryBlue
-                    "eat" -> Icons.Default.Restaurant to Color(0xFFE65100)
-                    else -> Icons.Default.Place to Color(0xFF10B981)
-                }
+        Spacer(modifier = Modifier.width(12.dp))
 
-                Surface(
-                    color = categoryColor.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            categoryIcon,
-                            contentDescription = null,
-                            tint = categoryColor,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = item.category.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = categoryColor
-                        )
-                    }
-                }
-
-                if (item.estimatedPrice.isNotBlank()) {
-                    Text(
-                        text = item.estimatedPrice,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = Color(0xFF0F172A)
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = item.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontSize = 13.sp,
+                color = Color(0xFF64748B),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+fun parseMarkdownBold(text: String): AnnotatedString {
+    val parts = text.split("**")
+    return buildAnnotatedString {
+        parts.forEachIndexed { index, part ->
+            if (index % 2 == 1) {
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))) {
+                    append(part)
+                }
+            } else {
+                append(part)
+            }
         }
     }
 }

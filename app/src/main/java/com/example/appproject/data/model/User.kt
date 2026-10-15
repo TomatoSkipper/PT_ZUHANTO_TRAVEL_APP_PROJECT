@@ -7,8 +7,7 @@ import com.google.firebase.firestore.PropertyName
 @Entity(tableName = "users")
 data class User(
     @PrimaryKey(autoGenerate = true)
-    @get:PropertyName("id")
-    val id: Int = 0,
+    val id: Long = 0L,
 
     @get:PropertyName("uid")
     val uid: String = "",
@@ -22,14 +21,15 @@ data class User(
     @get:PropertyName("phone")
     val phone: String = "",
 
-    @get:PropertyName("isBanned") @set:PropertyName("isBanned") @get:JvmName("isBanned")
-    var isBanned: Boolean = false,
+    @get:PropertyName("isBanned")
+    val isBanned: Boolean = false,
 
-    @get:PropertyName("isPhoneVerified") @set:PropertyName("isPhoneVerified") @get:JvmName("isPhoneVerified")
-    var isPhoneVerified: Boolean = false,
+    @get:PropertyName("isPhoneVerified")
+    val isPhoneVerified: Boolean = false,
 
     @get:PropertyName("name")
-    val name: String = ""
-)
+    val name: String = "",
 
-const val ADMIN_USERNAME = "Admin123"
+    @get:PropertyName("gender")
+    val gender: String = ""
+)

@@ -1,12 +1,8 @@
 package com.example.appproject.ui.screens
 
-import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseOutBack
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,20 +15,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Female
+import androidx.compose.material.icons.filled.Male
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,245 +50,489 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.appproject.R
 import com.example.appproject.data.model.User
 import com.example.appproject.data.repository.FirebaseRepository
+import com.example.appproject.ui.theme.PrimaryBlue
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     username: String,
     firebaseRepo: FirebaseRepository,
+    onBack: () -> Unit = {},
     onProfileUpdated: (String) -> Unit = {}
 ) {
     var user by remember { mutableStateOf<User?>(null) }
-    var editableUsername by remember { mutableStateOf(username) }
+    var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("Male") }
     var errorMessage by remember { mutableStateOf("") }
     var successMessage by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-
     LaunchedEffect(username) {
         user = firebaseRepo.getUser(username)
         user?.let {
-            editableUsername = it.username
+            fullName = it.name.ifBlank { it.username }
             email = it.email
             phone = it.phone
+            gender = if (it.gender.equals("Female", ignoreCase = true)) "Female" else "Male"
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
+    val initials = remember(fullName) {
+        val parts = fullName.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+        when {
+            parts.isEmpty() -> "MH"
+            parts.size == 1 -> parts[0].take(2).uppercase()
+            else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
+        }
+    }
+
+    Scaffold(
+        containerColor = Color(0xFFF8FAFC)
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
-        )
-
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = tween(600)) + slideInVertically(
-                initialOffsetY = { it / 10 },
-                animationSpec = tween(600, easing = EaseOutBack)
-            )
+                .padding(innerPadding)
+                .background(Color(0xFFF8FAFC))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            // Top Bar Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
             ) {
-                SectionHeader(
-                    title = stringResource(R.string.profile),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.ExtraBold
-
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    modifier = Modifier.size(40.dp),
+                    shadowElevation = 1.dp,
+                    onClick = onBack
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Text(
+                    text = stringResource(R.string.my_information),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Avatar & Name Header
+            Surface(
+                shape = CircleShape,
+                color = PrimaryBlue,
+                modifier = Modifier.size(80.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = initials,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 26.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = fullName.ifBlank { "GUEST" },
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Section 1: Personal details Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        text = "Personal details",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Full name",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = fullName,
+                        onValueChange = {
+                            fullName = it
+                            errorMessage = ""
+                            successMessage = ""
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryBlue)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = PrimaryBlue,
+                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = stringResource(R.string.gender),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Gender Option Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        OutlinedTextField(
-                            value = editableUsername,
-                            onValueChange = {
-                                editableUsername = it
-                                errorMessage = ""
-                                successMessage = ""
-                            },
-                            label = { Text(stringResource(R.string.username)) },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = {
-                                email = it
-                                errorMessage = ""
-                                successMessage = ""
-                            },
-                            label = { Text(stringResource(R.string.email)) },
-                            placeholder = { Text(stringResource(R.string.enter_email)) },
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = phone,
-                            onValueChange = {
-                                phone = it
-                                errorMessage = ""
-                                successMessage = ""
-                            },
-                            label = { Text(stringResource(R.string.phone)) },
-                            placeholder = { Text(stringResource(R.string.enter_phone)) },
-                            leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                        val isMaleSelected = gender == "Male"
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clickable {
+                                    gender = "Male"
+                                    errorMessage = ""
+                                    successMessage = ""
+                                },
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isMaleSelected) Color(0xFFEFF6FF) else Color.White,
+                            border = BorderStroke(
+                                if (isMaleSelected) 1.5.dp else 1.dp,
+                                if (isMaleSelected) PrimaryBlue else Color(0xFFE2E8F0)
+                            )
                         ) {
-                            val isVerified = user?.isPhoneVerified == true
-                            Surface(
-                                color = if (isVerified) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
-                                shape = RoundedCornerShape(12.dp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
+                                Icon(
+                                    imageVector = Icons.Default.Male,
+                                    contentDescription = null,
+                                    tint = if (isMaleSelected) PrimaryBlue else Color(0xFF475569),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.male),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isMaleSelected) PrimaryBlue else Color(0xFF0F172A)
+                                )
+                                if (isMaleSelected) {
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Icon(
-                                        imageVector = if (isVerified) Icons.Default.CheckCircle else Icons.Default.Info,
+                                        imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = if (isVerified) Color(0xFF2E7D32) else Color(0xFFE65100),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (isVerified) stringResource(R.string.phone_verified) else stringResource(R.string.phone_unverified),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isVerified) Color(0xFF2E7D32) else Color(0xFFE65100)
+                                        tint = PrimaryBlue,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        if (errorMessage.isNotEmpty()) {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 8.dp).fillMaxWidth()
-                            )
-                        }
-
-                        if (successMessage.isNotEmpty()) {
-                            Text(
-                                text = successMessage,
-                                color = Color(0xFF4CAF50),
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 8.dp).fillMaxWidth()
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        Button(
-                            onClick = {
-                                if (editableUsername.isBlank() || email.isBlank() || phone.isBlank()) {
-                                    errorMessage = context.getString(R.string.error_fill_all_fields)
-                                } else {
-                                    scope.launch {
-                                        try {
-                                            user?.let {
-                                                val oldUsername = it.username
-                                                val newUsername = editableUsername.trim()
-                                                val isUsernameChanged = oldUsername != newUsername
-                                                val isPhoneChanged = it.phone != phone.trim()
-
-                                                val updatedUser = it.copy(
-                                                    username = newUsername,
-                                                    email = email.trim(),
-                                                    phone = phone.trim(),
-                                                    isPhoneVerified = if (isPhoneChanged) false else it.isPhoneVerified
-                                                )
-                                                firebaseRepo.saveUser(updatedUser)
-
-                                                if (isUsernameChanged) {
-                                                    firebaseRepo.db?.collection("users")?.document(oldUsername.lowercase())?.delete()?.await()
-                                                    val bookings = firebaseRepo.getBookingsForUser(oldUsername)
-                                                    for (booking in bookings) {
-                                                        val updatedBooking = booking.copy(customerUsername = newUsername, customerName = newUsername)
-                                                        firebaseRepo.updateBooking(updatedBooking)
-                                                    }
-                                                }
-
-                                                val preferences = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
-                                                preferences.edit().putString("signed_in_username", updatedUser.username).apply()
-
-                                                user = updatedUser
-                                                successMessage = context.getString(R.string.profile_updated)
-                                                onProfileUpdated(updatedUser.username)
-                                            }
-                                        } catch (e: Exception) {
-                                            errorMessage = e.message ?: context.getString(R.string.unable_update)
-                                        }
-                                    }
-                                }
-                            },
+                        val isFemaleSelected = gender == "Female"
+                        Surface(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.save_changes),
-                                style = MaterialTheme.typography.titleMedium
+                                .weight(1f)
+                                .height(48.dp)
+                                .clickable {
+                                    gender = "Female"
+                                    errorMessage = ""
+                                    successMessage = ""
+                                },
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isFemaleSelected) Color(0xFFEFF6FF) else Color.White,
+                            border = BorderStroke(
+                                if (isFemaleSelected) 1.5.dp else 1.dp,
+                                if (isFemaleSelected) PrimaryBlue else Color(0xFFE2E8F0)
                             )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Female,
+                                    contentDescription = null,
+                                    tint = if (isFemaleSelected) PrimaryBlue else Color(0xFF475569),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.female),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isFemaleSelected) PrimaryBlue else Color(0xFF0F172A)
+                                )
+                                if (isFemaleSelected) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = PrimaryBlue,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section 2: Contact details Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        text = "Contact details",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Phone number",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFECFDF5),
+                            border = BorderStroke(1.dp, Color(0xFFA7F3D0))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF059669),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Verified",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF059669)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = {
+                            phone = it
+                            errorMessage = ""
+                            successMessage = ""
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = PrimaryBlue)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = PrimaryBlue,
+                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Email",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            errorMessage = ""
+                            successMessage = ""
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryBlue)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = PrimaryBlue,
+                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                        )
+                    )
+                }
+            }
+
+            if (errorMessage.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (successMessage.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = successMessage,
+                    color = Color(0xFF059669),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Save changes Button
+            Button(
+                onClick = {
+                    if (fullName.isBlank() || email.isBlank() || phone.isBlank()) {
+                        errorMessage = context.getString(R.string.error_fill_all_fields)
+                    } else {
+                        scope.launch {
+                            try {
+                                user?.let {
+                                    val cleanFullName = fullName.trim()
+                                    val parts = cleanFullName.split("\\s+".toRegex()).filter { it.isNotBlank() }
+                                    val derivedUsername = when {
+                                        parts.size >= 2 -> "${parts[0]} ${parts[1]}"
+                                        parts.size == 1 -> parts[0]
+                                        else -> "Traveler"
+                                    }
+                                    val newPhone = phone.trim()
+                                    val isPhoneChanged = it.phone != newPhone
+
+                                    if (isPhoneChanged && firebaseRepo.isPhoneRegistered(newPhone, it.uid)) {
+                                        errorMessage = "This phone number is already registered to another account"
+                                        return@launch
+                                    }
+
+                                    val updatedUser = it.copy(
+                                        name = cleanFullName,
+                                        username = derivedUsername,
+                                        email = email.trim(),
+                                        phone = newPhone,
+                                        gender = gender,
+                                        isPhoneVerified = if (isPhoneChanged) false else it.isPhoneVerified
+                                    )
+                                    firebaseRepo.saveUser(updatedUser)
+
+                                    user = updatedUser
+                                    successMessage = context.getString(R.string.profile_updated)
+                                    onProfileUpdated(updatedUser.uid)
+                                }
+                            } catch (e: Exception) {
+                                errorMessage = e.message ?: context.getString(R.string.unable_update)
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            ) {
+                Text(
+                    text = stringResource(R.string.save_changes),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

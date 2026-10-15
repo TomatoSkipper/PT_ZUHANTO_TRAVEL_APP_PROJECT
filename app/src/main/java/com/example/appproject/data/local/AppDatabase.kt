@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.appproject.data.model.Booking
 import com.example.appproject.data.model.User
 
-@Database(entities = [User::class, Booking::class], version = 5)
+@Database(entities = [User::class, Booking::class], version = 6)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun bookingDao(): BookingDao

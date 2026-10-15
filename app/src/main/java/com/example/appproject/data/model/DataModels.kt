@@ -59,7 +59,7 @@ fun getFormattedTierPrice(tier: PricingTier): String {
         }
         if (tier.pricePerPaxInt <= 0) return ""
         val totalInt = tier.pricePerPaxInt * 2
-        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt).replace(',', '.')
+        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt)
         return "$totalFormatted / couple"
     }
 
@@ -67,9 +67,9 @@ fun getFormattedTierPrice(tier: PricingTier): String {
     if (tier.pricePerPaxInt <= 0) return ""
     val perPax = tier.pricePerPaxInt
     val totalInt = perPax * pax
-    val perPaxFormatted = "IDR " + String.format(Locale.US, "%,d", perPax).replace(',', '.')
+    val perPaxFormatted = "IDR " + String.format(Locale.US, "%,d", perPax)
     if (pax > 1) {
-        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt).replace(',', '.')
+        val totalFormatted = "IDR " + String.format(Locale.US, "%,d", totalInt)
         return "$totalFormatted ($perPaxFormatted / pax)"
     }
     return "$perPaxFormatted / pax"
@@ -212,18 +212,6 @@ val defaultCountryCodes = listOf(
     CountryCodeOption("United Arab Emirates", "+971", "🇦🇪")
 )
 
-data class ProblemReport(
-    val reportId: String = "",
-    val username: String = "",
-    val userEmail: String = "",
-    val title: String = "",
-    val description: String = "",
-    val photoBase64: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
-    val status: String = "Pending",
-    val adminFeedback: String = ""
-)
-
 data class TargetClassConfig(
     val urlPath: String,
     val classA: String,
@@ -348,9 +336,9 @@ fun normalizeBookingStatus(status: String?): String {
     if (status.isNullOrBlank()) return "Pending"
     val lower = status.trim().lowercase()
     return when {
-        lower.contains("confirm") -> "Confirmed"
-        lower.contains("cancel") -> "Cancelled"
-        lower.contains("complete") -> "Completed"
+        lower.contains("confirm") || lower.contains("sah") -> "Confirmed"
+        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
+        lower.contains("complete") || lower.contains("selesai") -> "Completed"
         else -> "Pending"
     }
 }
@@ -359,8 +347,8 @@ fun normalizePaymentStatus(status: String?): String {
     if (status.isNullOrBlank()) return "Pending"
     val lower = status.trim().lowercase()
     return when {
-        lower.contains("paid") -> "Paid"
-        lower.contains("cancel") -> "Cancelled"
+        lower.contains("paid") || lower.contains("bayar") || lower.contains("lunas") -> "Paid"
+        lower.contains("cancel") || lower.contains("batal") -> "Cancelled"
         else -> "Pending"
     }
 }
@@ -383,3 +371,25 @@ fun getPaymentStatusDisplay(status: String?, context: Context? = null): String {
         else -> context?.getString(R.string.pending) ?: "Pending"
     }
 }
+
+const val ADMIN_UID = "0TGdUZiaJnc92nOGPsRdQMqubWV2"
+
+fun isUserAdmin(uid: String?, claims: Map<String, Any>?): Boolean {
+    if (!uid.isNullOrBlank() && uid == ADMIN_UID) return true
+    if (claims == null) return false
+    val adminClaim = claims["admin"]
+    return adminClaim == true || adminClaim?.toString()?.lowercase() == "true"
+}
+
+data class HelpRequest(
+    val id: String = "",
+    val category: String = "",
+    val question: String = "",
+    val customerName: String = "",
+    val customerEmail: String = "",
+    val customerPhone: String = "",
+    val tripPackage: String = "",
+    val timestamp: String = "",
+    val status: String = "Pending",
+    val customerUid: String = ""
+)
