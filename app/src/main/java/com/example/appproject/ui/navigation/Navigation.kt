@@ -897,7 +897,8 @@ fun AppNavigationDrawer() {
                 composable("chat") {
                     TravelChatScreen(
                         destination = "General Travel",
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onNavigateToHelp = { navController.navigate("help") }
                     )
                 }
                 composable("chat/{destination}") { backStackEntry ->
@@ -905,7 +906,8 @@ fun AppNavigationDrawer() {
                     val destination = Uri.decode(encodedDest)
                     TravelChatScreen(
                         destination = destination,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onNavigateToHelp = { navController.navigate("help") }
                     )
                 }
                 composable("bookings/{username}") { backStackEntry ->
