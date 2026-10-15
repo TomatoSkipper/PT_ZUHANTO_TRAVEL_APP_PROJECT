@@ -989,5 +989,16 @@
     <string name="request_sent">Request sent!</string>
     <string name="administrator_account">Administrator Account</string>
     <string name="verified_traveler">Verified Traveler</string>
+    <string name="ai_recommendation_prompt">Need recommendations for best places to visit, stay, or eat in</string>
+    <string name="ask_ai_assistant">Ask AI for Places to Visit, Stay, or Eat</string>
+    <string name="try_asking">Try asking</string>
+    <string name="best_places_to_visit">Best places to visit</string>
+    <string name="sights_and_viewpoints_nearby">Sights and viewpoints nearby</string>
+    <string name="what_are_the_best_places_to_visit_in">"What are the best places to visit in "</string>
+    <string name="hotels_and_homestays">Hotel and homestay</string>
+    <string name="where_are_the_best_places_to_stay_in">"Where are the best places to stay in "</string>
+    <string name="where_to_eat">Where to eat</string>
+    <string name="local_food_and_cafes">Local food and cafes</string>
+    <string name="what_are_the_best_places_to_eat_in">"What are the best places to eat in "</string>
 
 </resources>

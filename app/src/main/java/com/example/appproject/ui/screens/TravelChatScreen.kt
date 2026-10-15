@@ -57,6 +57,9 @@ fun TravelChatScreen(
     val listState = rememberLazyListState()
 
     val defaultTravel = stringResource(R.string.general_travel)
+    val whatAreBestPlacesPrompt = stringResource(R.string.what_are_the_best_places_to_visit_in)
+    val whereToStayPrompt = stringResource(R.string.where_are_the_best_places_to_stay_in)
+    val whereToEatPrompt = stringResource(R.string.what_are_the_best_places_to_eat_in)
     val displayDestination = remember(destination, defaultTravel) {
         if (destination.isNotBlank() && !destination.equals(defaultTravel, ignoreCase = true)) {
             destination
@@ -214,7 +217,7 @@ fun TravelChatScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "Try asking",
+                                text = stringResource(R.string.try_asking),
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF64748B),
                                 fontSize = 14.sp,
@@ -223,11 +226,11 @@ fun TravelChatScreen(
 
                             StarterCardItem(
                                 icon = Icons.Default.AccountBalance,
-                                title = "Best places to visit",
-                                subtitle = "Sights and viewpoints nearby",
+                                title = stringResource(R.string.best_places_to_visit),
+                                subtitle = stringResource(R.string.sights_and_viewpoints_nearby),
                                 onClick = {
                                     viewModel.sendMessage(
-                                        "What are the best places to visit in $displayDestination?",
+                                        "$whatAreBestPlacesPrompt $displayDestination?",
                                         displayDestination,
                                         days,
                                         currentItinerary
@@ -237,11 +240,11 @@ fun TravelChatScreen(
 
                             StarterCardItem(
                                 icon = Icons.Default.Hotel,
-                                title = "Where to stay",
-                                subtitle = "Hotels and homestays",
+                                title = stringResource(R.string.where_to_stay),
+                                subtitle = stringResource(R.string.hotels_and_homestays),
                                 onClick = {
                                     viewModel.sendMessage(
-                                        "Where are the best places to stay in $displayDestination?",
+                                        "$whereToStayPrompt $displayDestination?",
                                         displayDestination,
                                         days,
                                         currentItinerary
@@ -251,11 +254,11 @@ fun TravelChatScreen(
 
                             StarterCardItem(
                                 icon = Icons.Default.Restaurant,
-                                title = "Where to eat",
-                                subtitle = "Local food and cafes",
+                                title = stringResource(R.string.where_to_eat),
+                                subtitle = stringResource(R.string.local_food_and_cafes),
                                 onClick = {
                                     viewModel.sendMessage(
-                                        "What are the best places to eat in $displayDestination?",
+                                        "$whereToEatPrompt $displayDestination?",
                                         displayDestination,
                                         days,
                                         currentItinerary
