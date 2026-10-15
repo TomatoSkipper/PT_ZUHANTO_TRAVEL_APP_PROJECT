@@ -619,12 +619,28 @@ fun RecommendationRowItem(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = item.title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = Color(0xFF0F172A)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = item.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color(0xFF0F172A),
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (item.estimatedPrice.isNotBlank() && !item.estimatedPrice.equals("Varies", ignoreCase = true)) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = item.estimatedPrice,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = Color(0xFF1D61E7)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = item.description,
