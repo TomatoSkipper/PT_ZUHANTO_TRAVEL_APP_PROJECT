@@ -443,7 +443,7 @@ fun PromoTripDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "AI Travel Assistant",
+                                    text = stringResource(R.string.ai_travel_assistant),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -451,7 +451,7 @@ fun PromoTripDetailScreen(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Need recommendations for best places to visit, stay, or eat in ${currentTrip.name}?",
+                                text = stringResource(R.string.ai_recommendation_prompt, currentTrip.name),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -464,7 +464,7 @@ fun PromoTripDetailScreen(
                             ) {
                                 Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Ask AI for Places to Visit, Stay, or Eat")
+                                Text(stringResource(R.string.ask_ai_assistant))
                             }
                         }
                     }

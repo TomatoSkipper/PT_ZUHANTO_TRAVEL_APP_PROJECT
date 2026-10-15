@@ -994,5 +994,16 @@
     <string name="request_sent">Permintaan telah dihantar!</string>
     <string name="administrator_account">Akaun Pentadbir</string>
     <string name="verified_traveler">Pengembara Disahkan</string>
+    <string name="ai_recommendation_prompt">Perlukan cadangan tempat terbaik untuk dikunjungi, menginap atau makan di</string>
+    <string name="ask_ai_assistant">Tanya AI tentang tempat untuk dilawati, penginapan, atau tempat makan</string>
+    <string name="try_asking">Cuba tanya</string>
+    <string name="best_places_to_visit">Tempat-tempat terbaik untuk dikunjungi</string>
+    <string name="sights_and_viewpoints_nearby">Tempat menarik dan sudut pandangan berdekatan</string>
+    <string name="what_are_the_best_places_to_visit_in">"Apakah tempat-tempat terbaik untuk dilawati di "</string>
+    <string name="hotels_and_homestays">Hotel dan inap desa</string>
+    <string name="where_are_the_best_places_to_stay_in">"Di manakah tempat penginapan terbaik di "</string>
+    <string name="where_to_eat">Tempat makan</string>
+    <string name="local_food_and_cafes">Makanan tempatan dan kafe</string>
+    <string name="what_are_the_best_places_to_eat_in">"Apakah tempat makan terbaik di "</string>
 
 </resources>
